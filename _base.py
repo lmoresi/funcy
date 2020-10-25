@@ -6,11 +6,10 @@ import weakref
 
 import numpy as np
 
-from .pyklet import Pyklet
 from .utilities import is_numeric
 from .exceptions import *
 
-class Function(Pyklet):
+class Function:
 
     def __new__(cls, *args, **kwargs):
         if cls is Function:
