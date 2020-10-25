@@ -30,7 +30,7 @@ class Function:
         self.kwargs = {**kwargs}
         if not self._name is None:
             self.kwargs['name'] = self.name
-        super().__init__(*self.args, **self.kwargs)
+        # super().__init__(*self.args, **self.kwargs)
 
     @staticmethod
     def _value_resolve(val):
