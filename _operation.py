@@ -1,6 +1,5 @@
 from ._base import Function
-from ._base import \
-    FunctionException, FunctionMissingAsset, NullValueDetected, EvaluationError
+from .exceptions import *
 
 class Operation(Function):
 
@@ -8,8 +7,7 @@ class Operation(Function):
             *terms,
             op = None,
             asList = False,
-            invert = False,
-            comparative = False
+            dtype = None,
             ):
         if len(terms) == 1:
             if isinstance(terms[0], Seq):
@@ -21,15 +19,8 @@ class Operation(Function):
                 if not type(terms) is tuple:
                     terms = terms,
         self.operation = self._getop(op)
-        self.asList, self.invert = asList, invert
-        self.comparative = comparative
-        super().__init__(
-            *terms,
-            op = op,
-            asList = asList,
-            invert = invert,
-            comparative = comparative
-            )
+        self.asList = asList
+        super().__init__(*terms, dtype = dtype)
 
     def _evaluate(self):
         try:
@@ -42,9 +33,14 @@ class Operation(Function):
                 out = not out
             return out
         except NullValueDetected:
-            if self.comparative:
+            if self.isbool:
                 return False
             else:
                 raise NullValueDetected
+
+class Boolean(Operation):
+    def __init__(self, *args, invert = False, **kwargs):
+        self.invert = invert
+        super().__init__(*args, dtype = bool, **kwargs)
 
 from ._seq import Seq

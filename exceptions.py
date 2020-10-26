@@ -4,12 +4,20 @@ class FunctionException(Exception):
 class MissingAsset(FunctionException):
     pass
 
-class FunctionMissingAsset(MissingAsset, FunctionException):
-    pass
 class NullValueDetected(FunctionException):
     pass
+
 class EvaluationError(FunctionException):
     pass
 
 class NotYetImplemented(Exception):
+    pass
+
+class RedundantConvert(FunctionException):
+    pass
+
+class CannotProcess(FunctionException):
+    pass
+
+class CannotDetermineDataType(FunctionException):
     pass

@@ -9,28 +9,48 @@ import numpy as np
 from .utilities import is_numeric
 from .exceptions import *
 
+def convert(arg):
+    try:
+        return Function(arg)
+    except RedundantConvert:
+        return arg
+
 class Function:
 
     def __new__(cls, *args, **kwargs):
         if cls is Function:
-            if len(kwargs) == 0 and len(args) == 1:
-                if isinstance(args[0], Function):
-                    raise ValueError("Arg is already a Function.")
-            cls = cls._getcls(*args, **kwargs)
-        return super().__new__(cls)
+            if len(args) == 0:
+                cls = Slot
+            elif len(args) > 1:
+                cls = Seq
+            else:
+                arg = args[0]
+                if len(kwargs) == 0 and isinstance(arg, Function):
+                    raise RedundantConvert
+                cls = Variable
+        obj = super().__new__(cls)
+        obj._inArgs, obj._inKwargs = args, kwargs
+        return obj
 
-    def __init__(self, *terms, name = None, **kwargs):
-        self._name = name
-        self.terms = [Function() if t is None else t for t in terms]
+    def __init__(self, *terms, dtype = None):
+        self.terms = [convert(t) for t in terms]
+        if dtype is None:
+            for t in self.terms:
+                try:
+                    dtype = t.dtype
+                except AttributeError:
+                    raise CannotDetermineDataType
+        self._dtype = dtype
         if len(terms) == 1:
             self.arg = terms[0]
         else:
             self.arg = terms
-        self.args = self.terms
-        self.kwargs = {**kwargs}
-        if not self._name is None:
-            self.kwargs['name'] = self.name
+        self.kwargs = {**self._inKwargs, **dict(dtype = dtype)}
         # super().__init__(*self.args, **self.kwargs)
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     @staticmethod
     def _value_resolve(val):
@@ -41,9 +61,12 @@ class Function:
         if self.open:
             raise EvaluationError("Cannot evaluate open function.")
         else:
-            return self._value_resolve(self._evaluate())
+            val = self._evaluate()
+            val = self._value_resolve(val)
+            val = val.astype(self.dtype)
+            return val
     def _evaluate(self):
-        raise FunctionMissingAsset
+        raise MissingAsset
     @property
     def value(self):
         return self.evaluate()
@@ -54,6 +77,8 @@ class Function:
         return False
     @property
     def name(self):
+        if not hasattr(self, '_name'):
+            raise AttributeError
         return str(self._name)
 
     def _count_slots(self):
@@ -146,8 +171,15 @@ class Function:
             outObj = self
         return outObj
 
-    def _operate(self, *args, op = None, **kwargs):
-        return Operation(self, *args, op = op, **kwargs)
+    @property
+    def isbool(self):
+        return issubclass(self.dtype, bool)
+
+    def _operate(self, *args, op = None, comparative = False, **kwargs):
+        if comparative:
+            return Boolean(self, *args, op = op, **kwargs)
+        else:
+            return Operation(self, *args, op = op, **kwargs)
 
     def __eq__(self, *args):
         return self._operate(*args, op = 'eq', comparative = True)
@@ -161,10 +193,10 @@ class Function:
         return self._operate(*args, op = 'gt', comparative = True)
     def __lt__(self, *args):
         return self._operate(*args, op = 'lt', comparative = True)
-    def __and__(self, *args):
-        return self._operate(*args, op = 'all', comparative = True)
-    def __or__(self, *args):
-        return self._operate(*args, op = 'any', comparative = True)
+    # def __and__(self, *args):
+    #     return self._operate(*args, op = 'all', comparative = True)
+    # def __or__(self, *args):
+    #     return self._operate(*args, op = 'any', comparative = True)
     def __add__(self, *args):
         return self._operate(*args, op = 'add')
     def __floordiv__(self, *args):
@@ -204,21 +236,47 @@ class Function:
     def __invert__(self):
         return self.not_fn(self)
 
-    def pipeout(self, arg):
-        if not isinstance(arg, (Array, Value)):
-            raise FunctionException("Can only pipe to Arrays or Values.")
-        return arg.pipein(self)
+    def pipe_out(self, arg):
+        return arg.pipe_in(self)
+    def __or__(self, arg):
+        return self.pipe_out(arg)
 
+    def collect_out(self, arg):
+        return arg.collect_in(self)
     def __rshift__(self, arg):
-        return self.pipeout(arg)
-    def __lshift__(self, arg):
-        return arg.pipeout(self)
+        return self.collect_out(arg)
 
-    def __repr__(self):
-        head = super().__repr__()
-        tail = str(self)
-        return '=='.join([head, tail])
-    def __str__(self):
+
+    @property
+    def namestr(self):
+        return self._namestr()
+    def _namestr(self):
+        out = type(self).__name__ + self.kwargstr
+        if len(self.terms):
+            termstr = ', '.join(t.namestr for t in self.terms)
+            out += '(' + termstr + ')'
+        return out
+    @property
+    def kwargstr(self):
+        return self._kwargstr()
+    def _kwargstr(self):
+        outs = []
+        for key, val in sorted(self.kwargs.items()):
+            if not type(val) is str:
+                if isinstance(val, Function):
+                    val = val.namestr
+                else:
+                    try:
+                        val = val.__name__
+                    except AttributeError:
+                        val = str(val)
+            outs.append(': '.join((key, val)))
+        return '{' + ', '.join(outs) + '}'
+
+    @property
+    def valstr(self):
+        return self._valstr()
+    def _valstr(self):
         if self.open:
             return 'open:' + str((self.argslots, self.kwargslots))
         else:
@@ -226,6 +284,11 @@ class Function:
                 return str(self.value)
             except (NullValueDetected, EvaluationError):
                 return 'Null'
+    def __repr__(self):
+        return ' == '.join([self.namestr, self.valstr])
+    def __str__(self):
+        return self.valstr
+
     def __call__(self, *args, **kwargs):
         if len(args) or len(kwargs):
             self = self.close(*args, **kwargs)
@@ -242,28 +305,6 @@ class Function:
                 return getattr(operator, op)
         else:
             return op
-
-    @classmethod
-    def _getcls(cls, *args, op = None, **kwargs):
-        if op is None:
-            if not len(args):
-                return Slot
-            elif len(args) > 1:
-                return Seq
-            else:
-                arg = args[0]
-                if is_numeric(arg):
-                    return Value
-                elif type(arg) is str:
-                    return Text
-                else:
-                    try:
-                        _ = len(arg)
-                        return Array
-                    except TypeError:
-                        return Thing
-        else:
-            return Operation
 
     @property
     def get(self):
@@ -285,12 +326,11 @@ class Getter:
     def __getitem__(self, key):
         return GetItem(self.host, key)
 
-from ._operation import Operation
+from ._operation import Operation, Boolean
 from ._get import GetAttr, GetItem
 from ._trier import Trier
 from ._seq import Seq
-from ._value import Value
-from ._array import Array
+from ._variable import Variable
 from ._text import Text
 from ._thing import Thing
 from ._slot import Slot

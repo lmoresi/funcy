@@ -1,13 +1,13 @@
 from ._base import Function
-from ._base import \
-    FunctionException, FunctionMissingAsset, NullValueDetected, EvaluationError
+from .exceptions import *
 
 class Slot(Function):
 
-    def __init__(self, name = None):
+    def __init__(self, name = None, dtype = None):
         self._slots = 1
-        super().__init__(name = name)
-        if name is None:
+        super().__init__(dtype = dtype)
+        self._name = name
+        if self.name is None:
             self._argslots = 1
             self._kwargslots = []
         else:
