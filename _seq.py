@@ -13,5 +13,11 @@ class Seq(Function, Sequence):
         return self.terms[index]
     def __len__(self):
         return len(self.terms)
+
+    def reduce(self, op = 'call'):
+        target = self.terms[0]
+        for term in self.terms[1:]:
+            target = Function(target, term).op(op)
+        return target
     # def _hashID(self):
     #     return w_hash(tuple(get_hash(t) for t in self.terms))

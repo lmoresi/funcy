@@ -90,14 +90,6 @@ class Variable(Function):
         else:
             return Variable(self.pipe + arg, **self.kwargs)
 
-    def __iadd__(self, arg): return self._reassign(arg, op = 'add')
-    def __ifloordiv__(self, arg): return self._reassign(arg, op = 'floordiv')
-    def __imod__(self, arg): return self._reassign(arg, op = 'mod')
-    def __imul__(self, arg): return self._reassign(arg, op = 'mul')
-    def __ipow__(self, arg): return self._reassign(arg, op = 'pow')
-    def __isub__(self, arg): return self._reassign(arg, op = 'sub')
-    def __itruediv__(self, arg): return self._reassign(arg, op = 'truediv')
-
 class FixedVariable(Variable):
 
     def _set_value(self, val):

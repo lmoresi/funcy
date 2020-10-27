@@ -1,5 +1,28 @@
+import operator
+import builtins
+
 from ._base import Function
 from .exceptions import *
+
+ops = dict(
+    getitem = lambda x, y: x[y],
+    call = lambda x, y: x(y)
+    )
+
+def getop(op):
+    if op is None:
+        return lambda *args: args
+    elif type(op) is str:
+        if op in ops:
+            return ops[op]
+        else:
+            try:
+                return getattr(builtins, op)
+            except AttributeError:
+                return getattr(operator, op)
+    else:
+        assert callable(op)
+        return op
 
 class Operation(Function):
 
@@ -18,7 +41,7 @@ class Operation(Function):
                 terms = Operation(*terms, op = sop)
                 if not type(terms) is tuple:
                     terms = terms,
-        self.operation = self._getop(op)
+        self.operation = getop(op)
         self.asList = asList
         super().__init__(*terms, dtype = dtype)
 

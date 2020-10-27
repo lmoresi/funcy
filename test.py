@@ -4,7 +4,7 @@ from funcy import Fn
 
 class TestObj:
     def __init__(self):
-        self.foo = 'foo'
+        self.foo = ['foo', 'bun']
         self.boo = 10
     @property
     def thing(self):
@@ -16,7 +16,8 @@ class FuncyTest(unittest.TestCase):
         myvar = Fn(1., name = 'myvar')
         myvar += 1
         self.assertEqual(myvar, 2)
-        myget = Fn(testobj).get('thing', 'foo').get[2] * 3
+        myget = Fn(testobj).get.thing.get.foo.get[0, 2]
+        myget *= 3
         self.assertEqual(myget, 'ooo')
         holdvar = myget >> Fn(str)
         self.assertEqual(holdvar, myget)

@@ -1,12 +1,3 @@
-import operator
-import builtins
-from types import FunctionType
-from collections.abc import Mapping, Sequence
-import weakref
-
-import numpy as np
-
-from .utilities import is_numeric
 from .exceptions import *
 
 def convert(arg):
@@ -224,6 +215,17 @@ class Function:
     def __neg__(self, *args):
         return self._operate(*args, op = 'neg')
 
+    def _reassign(self, arg, op = None):
+        return self._operate(arg, op = op)
+
+    def __iadd__(self, arg): return self._reassign(arg, op = 'add')
+    def __ifloordiv__(self, arg): return self._reassign(arg, op = 'floordiv')
+    def __imod__(self, arg): return self._reassign(arg, op = 'mod')
+    def __imul__(self, arg): return self._reassign(arg, op = 'mul')
+    def __ipow__(self, arg): return self._reassign(arg, op = 'pow')
+    def __isub__(self, arg): return self._reassign(arg, op = 'sub')
+    def __itruediv__(self, arg): return self._reassign(arg, op = 'truediv')
+
     def __bool__(self):
         try:
             return bool(self.value)
@@ -309,18 +311,6 @@ class Function:
             self = self.close(*args, **kwargs)
         return self.evaluate()
 
-    @staticmethod
-    def _getop(op):
-        if op is None:
-            return lambda *args: args
-        elif type(op) is str:
-            try:
-                return getattr(builtins, op)
-            except AttributeError:
-                return getattr(operator, op)
-        else:
-            return op
-
     @property
     def get(self):
         return Getter(self)
@@ -336,16 +326,19 @@ class Function:
 class Getter:
     def __init__(self, host):
         self.host = host
-    def __call__(self, *props):
-        return GetAttr(self.host, *props)
-    def __getitem__(self, key):
-        return GetItem(self.host, key)
+    def __call__(self, *args):
+        return self.__getattr__(*args)
+    def __getattr__(self, *keys):
+        return Function(self.host, *keys).reduce(getattr)
+    def __getitem__(self, arg):
+        if type(arg) is tuple:
+            return Function(self.host, *arg).reduce('getitem')
+        else:
+            return Function(self.host, arg).op('getitem')
 
 from ._operation import Operation, Boolean
-from ._get import GetAttr, GetItem
 from ._trier import Trier
 from ._seq import Seq
 from ._variable import Variable, FixedVariable, ExtendableVariable
-from ._text import Text
 from ._thing import Thing
 from ._slot import Slot
