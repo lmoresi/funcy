@@ -29,18 +29,22 @@ class Operation(Function):
                 out = self.operation(ts)
             else:
                 out = self.operation(*ts)
-            if self.invert:
-                out = not out
             return out
         except NullValueDetected:
-            if self.isbool:
-                return False
-            else:
-                raise NullValueDetected
+            raise NullValueDetected
 
 class Boolean(Operation):
     def __init__(self, *args, invert = False, **kwargs):
         self.invert = invert
         super().__init__(*args, dtype = bool, **kwargs)
+    def _evaluate(self):
+        try:
+            out = super()._evaluate()
+        except NullValueDetected:
+            return False
+        if self.invert:
+            return not out
+        else:
+            return bool(out)
 
 from ._seq import Seq

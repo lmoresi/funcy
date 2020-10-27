@@ -6,7 +6,8 @@ class Slot(Function):
     def __init__(self, name = None, dtype = None):
         self._slots = 1
         super().__init__(dtype = dtype)
-        self._name = name
+        if not name is None:
+            self._name = name
         if self.name is None:
             self._argslots = 1
             self._kwargslots = []

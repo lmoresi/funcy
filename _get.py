@@ -25,10 +25,10 @@ class GetAttr(Get):
 
     @staticmethod
     def _evalget(target, key):
-        return getattr(target, prop)
+        return getattr(target, key)
 
 class GetItem(Get):
 
     @staticmethod
     def _evalget(target, key):
-        return target.__getitem__(prop)
+        return target.__getitem__(key)

@@ -27,7 +27,11 @@ class Function:
                 arg = args[0]
                 if len(kwargs) == 0 and isinstance(arg, Function):
                     raise RedundantConvert
-                cls = Variable
+                check = Variable._check_arg(arg)
+                if check is None:
+                    cls = Thing
+                else:
+                    cls = FixedVariable
         obj = super().__new__(cls)
         obj._inArgs, obj._inKwargs = args, kwargs
         return obj
@@ -38,6 +42,7 @@ class Function:
             for t in self.terms:
                 try:
                     dtype = t.dtype
+                    break
                 except AttributeError:
                     raise CannotDetermineDataType
         self._dtype = dtype
@@ -63,7 +68,10 @@ class Function:
         else:
             val = self._evaluate()
             val = self._value_resolve(val)
-            val = val.astype(self.dtype)
+            try:
+                val = val.astype(self.dtype)
+            except AttributeError:
+                pass
             return val
     def _evaluate(self):
         raise MissingAsset
@@ -78,7 +86,7 @@ class Function:
     @property
     def name(self):
         if not hasattr(self, '_name'):
-            raise AttributeError
+            return None
         return str(self._name)
 
     def _count_slots(self):
@@ -193,10 +201,10 @@ class Function:
         return self._operate(*args, op = 'gt', comparative = True)
     def __lt__(self, *args):
         return self._operate(*args, op = 'lt', comparative = True)
-    # def __and__(self, *args):
-    #     return self._operate(*args, op = 'all', comparative = True)
-    # def __or__(self, *args):
-    #     return self._operate(*args, op = 'any', comparative = True)
+    def __and__(self, *args):
+        return self._operate(*args, op = 'all', comparative = True)
+    def __or__(self, *args):
+        return self._operate(*args, op = 'any', comparative = True)
     def __add__(self, *args):
         return self._operate(*args, op = 'add')
     def __floordiv__(self, *args):
@@ -237,15 +245,22 @@ class Function:
         return self.not_fn(self)
 
     def pipe_out(self, arg):
-        return arg.pipe_in(self)
-    def __or__(self, arg):
-        return self.pipe_out(arg)
-
-    def collect_out(self, arg):
-        return arg.collect_in(self)
+        if type(arg) is list:
+            try:
+                arg = arg[0]
+            except IndexError:
+                arg = None
+            outcls = ExtendableVariable
+        else:
+            outcls = FixedVariable
+        arg = convert(arg)
+        if not isinstance(arg, FixedVariable):
+            raise FunctionException(arg)
+        return outcls(self, **arg.kwargs)
     def __rshift__(self, arg):
-        return self.collect_out(arg)
-
+        return self.pipe_out(arg)
+    def __lshift__(self, arg):
+        return arg.pipe_out(self)
 
     @property
     def namestr(self):
@@ -330,7 +345,7 @@ from ._operation import Operation, Boolean
 from ._get import GetAttr, GetItem
 from ._trier import Trier
 from ._seq import Seq
-from ._variable import Variable
+from ._variable import Variable, FixedVariable, ExtendableVariable
 from ._text import Text
 from ._thing import Thing
 from ._slot import Slot

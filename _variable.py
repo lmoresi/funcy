@@ -4,7 +4,23 @@ from collections.abc import Sequence
 from ._base import Function, convert
 from .exceptions import *
 
+
+
 class Variable(Function):
+
+    @staticmethod
+    def _check_arg(arg):
+        if isinstance(arg, Function):
+            return 'pipe'
+        elif type(arg) is type:
+            return 'dtype'
+        elif arg is None:
+            return 'empty'
+        else:
+            if np.array(arg).dtype == 'O':
+                return None
+            else:
+                return 'numeric'
 
     def __init__(self,
             arg,
@@ -15,20 +31,22 @@ class Variable(Function):
         self.nullify()
         self.pipe = None
         self._name = name
-        if isinstance(arg, Function):
+        check = self._check_arg(arg)
+        if check == 'pipe':
             self.pipe = arg
             super().__init__(self.pipe, **kwargs)
-        elif type(arg) is type:
-            if not issubclass(arg, np.generic):
-                raise TypeError("dtype must be a Numpy type.")
-            dtype = arg
-            super().__init__(dtype = dtype, **kwargs)
-        elif arg is None:
+        elif check == 'dtype':
+            super().__init__(dtype = arg, **kwargs)
+        elif check == 'empty':
             super().__init__(None, **kwargs)
+        elif check == 'numeric':
+            if not isinstance(arg, np.ndarray):
+                arg = np.array(arg)
+            super().__init__(dtype = arg.dtype.type, **kwargs)
+            self._value = arg
+            self.value = arg
         else:
-            value = np.array(arg)
-            super().__init__(dtype = value.dtype.type, **kwargs)
-            self.value = value
+            raise ValueError(arg)
 
     def _isnull(self):
         return self._null
@@ -61,11 +79,9 @@ class Variable(Function):
             val = self._value_resolve(val)
             self._set_value(val)
             self._null = False
+
     def _set_value(self, val):
-        if self.null:
-            self._value = np.array(val, dtype = self.dtype)
-        else:
-            self._value[...] = val
+        raise MissingAsset
 
     def _reassign(self, arg, op = None):
         if self.pipe is None:
@@ -82,26 +98,36 @@ class Variable(Function):
     def __isub__(self, arg): return self._reassign(arg, op = 'sub')
     def __itruediv__(self, arg): return self._reassign(arg, op = 'truediv')
 
-    def pipe_in(self, arg):
-        return Variable(convert(arg), **self.kwargs)
-    def collect_in(self, arg):
-        return Collector(convert(arg), **self.kwargs)
+class FixedVariable(Variable):
 
-class Collector(Variable, Sequence):
+    def _set_value(self, val):
+        try:
+            self._value[...] = val
+        except TypeError:
+            self._value = np.array(val, dtype = self.dtype)
+
+class ExtendableVariable(Variable, Sequence):
 
     def _set_value(self, val):
         val = np.array(val, dtype = self.dtype)
-        self._values.append(val)
+        self.values.append(val)
     @property
     def _value(self):
-        return np.concatenate(self._values)
+        return np.stack(self._values)
     @_value.setter
     def _value(self, val):
-        self._values.clear()
+        self.values.clear()
         if not val is None:
-            self._values.append(self.dtype(val))
+            self.values.append(self.dtype(val))
+    @property
+    def values(self):
+        try:
+            return self._values
+        except AttributeError:
+            self._values = []
+            return self._values
 
     def __len__(self):
-        return len(self._values)
+        return len(self.values)
     def __iter__(self):
-        return iter(self._values)
+        return iter(self.values)
