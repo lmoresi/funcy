@@ -30,7 +30,6 @@ class Operation(Function):
             *terms,
             op = None,
             asList = False,
-            dtype = None,
             ):
         if len(terms) == 1:
             if isinstance(terms[0], Seq):
@@ -43,7 +42,7 @@ class Operation(Function):
                     terms = terms,
         self.operation = getop(op)
         self.asList = asList
-        super().__init__(*terms, dtype = dtype)
+        super().__init__(*terms)
 
     def _evaluate(self):
         try:
@@ -55,19 +54,5 @@ class Operation(Function):
             return out
         except NullValueDetected:
             raise NullValueDetected
-
-class Boolean(Operation):
-    def __init__(self, *args, invert = False, **kwargs):
-        self.invert = invert
-        super().__init__(*args, dtype = bool, **kwargs)
-    def _evaluate(self):
-        try:
-            out = super()._evaluate()
-        except NullValueDetected:
-            return False
-        if self.invert:
-            return not out
-        else:
-            return bool(out)
 
 from ._seq import Seq

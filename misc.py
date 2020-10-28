@@ -3,7 +3,7 @@ import numpy as np
 from . import Fn
 
 timeAv = Fn(
-    Fn(name = 'vs').get[1]
+    Fn(name = 'vs').get[1],
     0,
     Fn(name = 'ts').op(np.diff)
     ).op(np.average)

@@ -27,26 +27,14 @@ class Function:
         obj._inArgs, obj._inKwargs = args, kwargs
         return obj
 
-    def __init__(self, *terms, dtype = None):
+    def __init__(self, *terms):
         self.terms = [convert(t) for t in terms]
-        if dtype is None:
-            for t in self.terms:
-                try:
-                    dtype = t.dtype
-                    break
-                except AttributeError:
-                    raise CannotDetermineDataType
-        self._dtype = dtype
         if len(terms) == 1:
             self.arg = terms[0]
         else:
             self.arg = terms
-        self.kwargs = {**self._inKwargs, **dict(dtype = dtype)}
+        self.kwargs = {**self._inKwargs}
         # super().__init__(*self.args, **self.kwargs)
-
-    @property
-    def dtype(self):
-        return self._dtype
 
     @staticmethod
     def _value_resolve(val):
@@ -59,10 +47,6 @@ class Function:
         else:
             val = self._evaluate()
             val = self._value_resolve(val)
-            try:
-                val = val.astype(self.dtype)
-            except AttributeError:
-                pass
             return val
     def _evaluate(self):
         raise MissingAsset
@@ -170,32 +154,25 @@ class Function:
             outObj = self
         return outObj
 
-    @property
-    def isbool(self):
-        return issubclass(self.dtype, bool)
-
-    def _operate(self, *args, op = None, comparative = False, **kwargs):
-        if comparative:
-            return Boolean(self, *args, op = op, **kwargs)
-        else:
-            return Operation(self, *args, op = op, **kwargs)
+    def _operate(self, *args, op = None, truthy = False, **kwargs):
+        return Operation(self, *args, op = op, **kwargs)
 
     def __eq__(self, *args):
-        return self._operate(*args, op = 'eq', comparative = True)
+        return self._operate(*args, op = 'eq', truthy = True)
     def __ne__(self, *args):
-        return self._operate(*args, op = 'ne', comparative = True)
+        return self._operate(*args, op = 'ne', truthy = True)
     def __ge__(self, *args):
-        return self._operate(*args, op = 'ge', comparative = True)
+        return self._operate(*args, op = 'ge', truthy = True)
     def __le__(self, *args):
-        return self._operate(*args, op = 'le', comparative = True)
+        return self._operate(*args, op = 'le', truthy = True)
     def __gt__(self, *args):
-        return self._operate(*args, op = 'gt', comparative = True)
+        return self._operate(*args, op = 'gt', truthy = True)
     def __lt__(self, *args):
-        return self._operate(*args, op = 'lt', comparative = True)
+        return self._operate(*args, op = 'lt', truthy = True)
     def __and__(self, *args):
-        return self._operate(*args, op = 'all', comparative = True)
+        return self._operate(*args, op = 'all', truthy = True)
     def __or__(self, *args):
-        return self._operate(*args, op = 'any', comparative = True)
+        return self._operate(*args, op = 'any', truthy = True)
     def __add__(self, *args):
         return self._operate(*args, op = 'add')
     def __floordiv__(self, *args):
@@ -336,7 +313,7 @@ class Getter:
         else:
             return Function(self.host, arg).op('getitem')
 
-from ._operation import Operation, Boolean
+from ._operation import Operation #, Boolean
 from ._trier import Trier
 from ._seq import Seq
 from ._variable import Variable, FixedVariable, ExtendableVariable

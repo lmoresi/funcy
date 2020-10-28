@@ -26,6 +26,7 @@ class FuncyTest(unittest.TestCase):
         myget = Fn(testobj).get('thing', 'thing', 'boo')
         myfn = Fn(myget, 2).op(pow)
         self.assertEqual(myfn, 100)
+        self.assertTrue(myfn > 90)
         myvar = myfn >> [float]
         vals = myvar.value, myvar.value, myvar.value
         vals = [list(v) for v in vals]

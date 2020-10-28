@@ -1,10 +1,8 @@
 import numpy as np
 from collections.abc import Sequence
 
-from ._base import Function, convert
+from ._base import Function
 from .exceptions import *
-
-
 
 class Variable(Function):
 
@@ -30,20 +28,23 @@ class Variable(Function):
 
         self.nullify()
         self.pipe = None
+        self.dtype = None
         self._name = name
         check = self._check_arg(arg)
         if check == 'pipe':
             self.pipe = arg
             super().__init__(self.pipe, **kwargs)
         elif check == 'dtype':
-            super().__init__(dtype = arg, **kwargs)
+            self.dtype = arg
+            super().__init__(**kwargs)
         elif check == 'empty':
-            super().__init__(None, **kwargs)
+            super().__init__(Function(), **kwargs)
         elif check == 'numeric':
             if not isinstance(arg, np.ndarray):
                 arg = np.array(arg)
-            super().__init__(dtype = arg.dtype.type, **kwargs)
-            self._value = arg
+            self.dtype = arg.dtype.type
+            super().__init__(**kwargs)
+            self.data = arg
             self.value = arg
         else:
             raise ValueError(arg)
@@ -53,7 +54,7 @@ class Variable(Function):
     def nullify(self):
         self._nullify()
     def _nullify(self):
-        self._value = None
+        self.data = None
         self._null = True
 
     def _evaluate(self):
@@ -61,11 +62,13 @@ class Variable(Function):
             self.value = self.pipe
         if self.null:
             raise NullValueDetected
-        val = self._value
+        val = self.data
         if len(val.shape):
             return val
         else:
-            return self.dtype(val)
+            if not self.dtype is None:
+                val = self.dtype(val)
+            return val
 
     @property
     def value(self):
@@ -73,10 +76,9 @@ class Variable(Function):
     @value.setter
     def value(self, val):
         if val is None:
-            self._value = None
+            self.data = None
             self._null = True
         else:
-            val = self._value_resolve(val)
             self._set_value(val)
             self._null = False
 
@@ -93,31 +95,33 @@ class Variable(Function):
 class FixedVariable(Variable):
 
     def _set_value(self, val):
+        val = self._value_resolve(val)
         try:
-            self._value[...] = val
+            self.data[...] = val
         except TypeError:
-            self._value = np.array(val, dtype = self.dtype)
+            self.data = np.array(val, dtype = self.dtype)
 
 class ExtendableVariable(Variable, Sequence):
 
     def _set_value(self, val):
+        val = self._value_resolve(val)
         val = np.array(val, dtype = self.dtype)
         self.values.append(val)
     @property
-    def _value(self):
-        return np.stack(self._values)
-    @_value.setter
-    def _value(self, val):
+    def data(self):
+        return np.stack(self.datas)
+    @data.setter
+    def data(self, val):
         self.values.clear()
         if not val is None:
             self.values.append(self.dtype(val))
     @property
     def values(self):
         try:
-            return self._values
+            return self.datas
         except AttributeError:
-            self._values = []
-            return self._values
+            self.datas = []
+            return self.datas
 
     def __len__(self):
         return len(self.values)
