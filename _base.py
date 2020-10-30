@@ -28,7 +28,8 @@ class Function:
         return obj
 
     def __init__(self, *terms):
-        self.terms = [convert(t) for t in terms]
+        # self.terms = [convert(t) for t in terms]
+        self.terms = terms
         if len(terms) == 1:
             self.arg = terms[0]
         else:
@@ -246,8 +247,9 @@ class Function:
         return self._namestr()
     def _namestr(self):
         out = type(self).__name__ + self.kwargstr
+        termstr = lambda t: t.namestr if hasattr(t, 'namestr') else str(t)
         if len(self.terms):
-            termstr = ', '.join(t.namestr for t in self.terms)
+            termstr = ', '.join(termstr(t) for t in self.terms)
             out += '(' + termstr + ')'
         return out
     @property
