@@ -173,6 +173,8 @@ class Function:
         return self._operate(*args, op = 'all', truthy = True)
     def __or__(self, *args):
         return self._operate(*args, op = 'any', truthy = True)
+    def __invert__(self, *args):
+        return self._operate(*args, op = 'not', truthy = True)
     def __add__(self, *args):
         return self._operate(*args, op = 'add')
     def __floordiv__(self, *args):
@@ -208,20 +210,18 @@ class Function:
             return bool(self.value)
         except NullValueDetected:
             return False
-    @staticmethod
-    def bool(arg):
-        return Operation(*args, op = bool)
-    @staticmethod
-    def all(*args):
-        return Operation(*args, op = all)
-    @staticmethod
-    def any(*args):
-        return Operation(*args, op = any)
-    @staticmethod
-    def not_fn(*args):
-        return Operation(*args, op = bool, invert = True)
-    def __invert__(self):
-        return self.not_fn(self)
+    # @staticmethod
+    # def bool(arg):
+    #     return Operation(*args, op = bool)
+    # @staticmethod
+    # def all(*args):
+    #     return Operation(*args, op = all)
+    # @staticmethod
+    # def any(*args):
+    #     return Operation(*args, op = any)
+    # @staticmethod
+    # def not_fn(*args):
+    #     return Operation(*args, op = bool, invert = True)
 
     def pipe_out(self, arg):
         if type(arg) is list:

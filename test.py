@@ -32,6 +32,8 @@ class FuncyTest(unittest.TestCase):
         vals = [list(v) for v in vals]
         self.assertEqual(vals, [[100.], [100., 100.], [100., 100., 100.]])
         self.assertEqual(len(myvar), 3)
+        myfn = ~((Fn(1.) > Fn(2)) & (Fn(False) | Fn(True)))
+        self.assertTrue(myfn)
 
 if __name__ == '__main__':
     unittest.main()

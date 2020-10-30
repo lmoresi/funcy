@@ -6,8 +6,13 @@ from .exceptions import *
 
 ops = dict(
     getitem = lambda x, y: x[y],
-    call = lambda x, y: x(y)
+    call = lambda x, y: x(y),
+    all = lambda *a: all(a),
+    any = lambda *a: any(a),
     )
+ops.update({
+    'not': lambda x: not x
+    })
 
 def getop(op):
     if op is None:
