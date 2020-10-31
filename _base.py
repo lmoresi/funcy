@@ -103,6 +103,12 @@ class Function:
     @property
     def open(self):
         return bool(self.slots)
+    def allclose(self, arg):
+        target = self
+        while target.open:
+            target = target.close(arg)
+        assert not target.open
+        return target
     def close(self,
             *queryArgs,
             **queryKwargs
