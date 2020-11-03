@@ -1,3 +1,5 @@
+from wordhash import w_hash
+
 from .exceptions import *
 
 def convert(arg):
@@ -290,6 +292,9 @@ class Function:
         return ' == '.join([self.namestr, self.valstr])
     def __str__(self):
         return self.valstr
+    @property
+    def hashID(self):
+        return w_hash(repr(self))
 
     def __call__(self, *args, **kwargs):
         if len(args) or len(kwargs):
