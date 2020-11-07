@@ -26,17 +26,16 @@ class Function:
                 else:
                     cls = FixedVariable
         obj = super().__new__(cls)
-        obj._inArgs, obj._inKwargs = args, kwargs
         return obj
 
-    def __init__(self, *terms):
+    def __init__(self, *terms, **kwargs):
         # self.terms = [convert(t) for t in terms]
         self.terms = terms
         if len(terms) == 1:
             self.arg = terms[0]
         else:
             self.arg = terms
-        self.kwargs = {**self._inKwargs}
+        self.kwargs = kwargs
         # super().__init__(*self.args, **self.kwargs)
 
     @staticmethod
@@ -289,12 +288,12 @@ class Function:
             except (NullValueDetected, EvaluationError):
                 return 'Null'
     def __repr__(self):
-        return ' == '.join([self.namestr, self.valstr])
+        return self.namestr
     def __str__(self):
-        return self.valstr
+        return ' == '.join([self.namestr, self.valstr])
     @property
     def hashID(self):
-        return w_hash(repr(self))
+        return w_hash(self.namestr)
 
     def __call__(self, *args, **kwargs):
         if len(args) or len(kwargs):

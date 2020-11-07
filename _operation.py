@@ -47,7 +47,7 @@ class Operation(Function):
                     terms = terms,
         self.operation = getop(op)
         self.asList = asList
-        super().__init__(*terms)
+        super().__init__(*terms, op = op)
 
     def _evaluate(self):
         try:

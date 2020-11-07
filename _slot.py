@@ -5,7 +5,7 @@ class Slot(Function):
 
     def __init__(self, name = None):
         self._slots = 1
-        super().__init__()
+        super().__init__(name = name)
         if not name is None:
             self._name = name
         if self.name is None:

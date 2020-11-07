@@ -5,8 +5,8 @@ from .exceptions import *
 
 class Seq(Function, Sequence):
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
     def _evaluate(self):
         return self.terms
     def __getitem__(self, index):

@@ -33,17 +33,17 @@ class Variable(Function):
         check = self._check_arg(arg)
         if check == 'pipe':
             self.pipe = arg
-            super().__init__(self.pipe, **kwargs)
+            super().__init__(self.pipe, name = name, **kwargs)
         elif check == 'dtype':
             self.dtype = arg
-            super().__init__(**kwargs)
+            super().__init__(name = name, **kwargs)
         elif check == 'empty':
-            super().__init__(Function(), **kwargs)
+            super().__init__(Function(), name = name, **kwargs)
         elif check == 'numeric':
             if not isinstance(arg, np.ndarray):
                 arg = np.array(arg)
             self.dtype = arg.dtype.type
-            super().__init__(**kwargs)
+            super().__init__(name = name, **kwargs)
             self.data = arg
             self.value = arg
         else:
