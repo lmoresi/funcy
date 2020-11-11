@@ -1,3 +1,5 @@
+import numpy as np
+
 from wordhash import w_hash
 
 from .exceptions import *
@@ -7,6 +9,11 @@ def convert(arg):
         return Function(arg)
     except RedundantConvert:
         return arg
+
+def _value_resolve(val):
+    while isinstance(val, Function):
+        val = val.value
+    return val
 
 class Function:
 
@@ -24,8 +31,9 @@ class Function:
                 if check is None:
                     cls = Thing
                 else:
-                    cls = FixedVariable
+                    cls = MutableVariable
         obj = super().__new__(cls)
+        obj._value_resolve = _value_resolve
         return obj
 
     def __init__(self, *terms, **kwargs):
@@ -38,28 +46,16 @@ class Function:
         self.kwargs = kwargs
         # super().__init__(*self.args, **self.kwargs)
 
-    @staticmethod
-    def _value_resolve(val):
-        while isinstance(val, Function):
-            val = val.value
-        return val
     def evaluate(self):
         if self.open:
             raise EvaluationError("Cannot evaluate open function.")
         else:
-            val = self._evaluate()
-            val = self._value_resolve(val)
-            return val
+            return self._evaluate()
     def _evaluate(self):
         raise MissingAsset
     @property
     def value(self):
         return self.evaluate()
-    @property
-    def null(self):
-        return self._isnull()
-    def _isnull(self):
-        return False
     @property
     def name(self):
         if not hasattr(self, '_name'):
@@ -202,22 +198,9 @@ class Function:
     def __neg__(self, *args):
         return self._operate(*args, op = 'neg')
 
-    def _reassign(self, arg, op = None):
-        return self._operate(arg, op = op)
-
-    def __iadd__(self, arg): return self._reassign(arg, op = 'add')
-    def __ifloordiv__(self, arg): return self._reassign(arg, op = 'floordiv')
-    def __imod__(self, arg): return self._reassign(arg, op = 'mod')
-    def __imul__(self, arg): return self._reassign(arg, op = 'mul')
-    def __ipow__(self, arg): return self._reassign(arg, op = 'pow')
-    def __isub__(self, arg): return self._reassign(arg, op = 'sub')
-    def __itruediv__(self, arg): return self._reassign(arg, op = 'truediv')
-
     def __bool__(self):
-        try:
-            return bool(self.value)
-        except NullValueDetected:
-            return False
+        return bool(self.value)
+
     # @staticmethod
     # def bool(arg):
     #     return Operation(*args, op = bool)
@@ -325,9 +308,9 @@ class Getter:
         else:
             return Function(self.host, arg).op('getitem')
 
-from ._operation import Operation #, Boolean
+from ._operation import Operation, getop #, Boolean
 from ._trier import Trier
 from ._seq import Seq
-from ._variable import Variable, FixedVariable, ExtendableVariable
+from ._variable import Variable, MutableVariable, ExtendableVariable
 from ._thing import Thing
 from ._slot import Slot

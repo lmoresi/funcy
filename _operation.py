@@ -50,14 +50,11 @@ class Operation(Function):
         super().__init__(*terms, op = op)
 
     def _evaluate(self):
-        try:
-            ts = [self._value_resolve(t) for t in self.terms]
-            if self.asList:
-                out = self.operation(ts)
-            else:
-                out = self.operation(*ts)
-            return out
-        except NullValueDetected:
-            raise NullValueDetected
+        ts = [self._value_resolve(t) for t in self.terms]
+        if self.asList:
+            out = self.operation(ts)
+        else:
+            out = self.operation(*ts)
+        return out
 
 from ._seq import Seq

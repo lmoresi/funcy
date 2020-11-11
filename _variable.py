@@ -1,8 +1,24 @@
+from functools import wraps
+
 import numpy as np
 from collections.abc import Sequence
 
-from ._base import Function
+from ._base import Function, getop
 from .exceptions import *
+
+def nullwrap(func):
+    @wraps(func)
+    def wrapper(self, arg, **kwargs):
+        # if arg is None:
+        #     raise NullValueDetected
+        try:
+            return func(self, arg, **kwargs)
+        except TypeError:
+            if self.null:
+                raise NullValueDetected
+            else:
+                return func(self, self._value_resolve(arg))
+    return wrapper
 
 class Variable(Function):
 
@@ -32,74 +48,119 @@ class Variable(Function):
         self._name = name
         check = self._check_arg(arg)
         if check == 'pipe':
-            self.pipe = arg
-            super().__init__(self.pipe, name = name, **kwargs)
+            raise NotYetImplemented
+            # self.pipe = arg
+            # super().__init__(self.pipe, name = name, **kwargs)
         elif check == 'dtype':
             self.dtype = arg
+            self.scalar = True
             super().__init__(name = name, **kwargs)
         elif check == 'empty':
             super().__init__(Function(), name = name, **kwargs)
         elif check == 'numeric':
-            if not isinstance(arg, np.ndarray):
-                arg = np.array(arg)
-            self.dtype = arg.dtype.type
+            if isinstance(arg, np.ndarray):
+                asarr = arg
+                self.scalar = False
+            else:
+                asarr = np.array(arg)
+                self.scalar = True
+            self.dtype = asarr.dtype.type
             super().__init__(name = name, **kwargs)
-            self.data = arg
-            self.value = arg
         else:
             raise ValueError(arg)
+        if self.scalar:
+            self.isnull = lambda: self.data is None
+            self._set_value = self._set_value_scalar
+        else:
+            self.isnull = lambda: np.isnull(self.data).any()
+            self._set_value = self._set_value_array
+        if check == 'numeric':
+            self.value = arg
 
-    def _isnull(self):
-        return self._null
     def nullify(self):
         self._nullify()
     def _nullify(self):
         self.data = None
-        self._null = True
+    @property
+    def null(self):
+        return self.isnull()
 
     def _evaluate(self):
-        if not self.pipe is None:
-            self.value = self.pipe
-        if self.null:
-            raise NullValueDetected
-        val = self.data
-        if len(val.shape):
-            return val
+        return self.value
+    def out(self):
+        if self.scalar:
+            return self.data
         else:
-            if not self.dtype is None:
-                val = self.dtype(val)
-            return val
+            return self.data.copy()
 
     @property
     def value(self):
-        return self.evaluate()
+        data = self.data
+        if data is None: raise NullValueDetected
+        return data
     @value.setter
     def value(self, val):
-        if val is None:
-            self.data = None
-            self._null = True
-        else:
-            self._set_value(val)
-            self._null = False
+        self._set_value(val)
+        # if self.pipe is None:
+        #     if val is None:
+        #         self.data = None
+        #         self.null = True
+        #     else:
+        #         self._set_value(val)
+        #         self.null = False
+        # else:
+        #     raise NotYetImplemented
+    # def _reassign(self, arg, op = None):
+    #     if self.pipe is None:
+    #         self._set_value(getop(op)(self.data, self._value_resolve(arg)))
+    #         return self
+    #     else:
+    #         return Variable(self.pipe + arg, **self.kwargs)
 
-    def _set_value(self, val):
-        raise MissingAsset
+class MutableVariable(Variable):
 
-    def _reassign(self, arg, op = None):
-        if self.pipe is None:
-            self.value = self._operate(arg, op = op).value
-            return self
-        else:
-            return Variable(self.pipe + arg, **self.kwargs)
-
-class FixedVariable(Variable):
-
-    def _set_value(self, val):
-        val = self._value_resolve(val)
+    def _set_value_scalar(self, val):
         try:
-            self.data[...] = val
+            self.data = self.dtype(self._value_resolve(val))
         except TypeError:
-            self.data = np.array(val, dtype = self.dtype)
+            self.data = None
+    def _set_value_array(self, val):
+        try:
+            self.data[...] = self._value_resolve(val)
+        except TypeError:
+            self.data = np.array(
+                self._value_resolve(val),
+                dtype = self.dtype
+                )
+
+    @nullwrap
+    def __iadd__(self, arg):
+        self.data += arg
+        return self
+    @nullwrap
+    def __isub__(self, arg):
+        self.data -= arg
+        return self
+    @nullwrap
+    def __imul__(self, arg):
+        self.data *= arg
+        return self
+    @nullwrap
+    def __itruediv__(self, arg):
+        self.data /= arg
+        return self
+    @nullwrap
+    def __ifloordiv__(self, arg):
+        self.data //= arg
+        return self
+    @nullwrap
+    def __imod__(self, arg):
+        self.data %= arg
+        return self
+    @nullwrap
+    def __ipow__(self, arg):
+        self.data **= arg
+        return self
 
 class ExtendableVariable(Variable, Sequence):
 
