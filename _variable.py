@@ -36,6 +36,20 @@ class Variable(Function):
             else:
                 return 'numeric'
 
+    __slots__ = (
+        '_value_resolve',
+        'data',
+        'pipe',
+        'dtype',
+        '_name',
+        'scalar',
+        'terms',
+        'arg',
+        'kwargs',
+        'isnull',
+        '_set_value',
+        )
+
     def __init__(self,
             arg,
             name = None,
