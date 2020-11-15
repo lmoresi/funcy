@@ -8,7 +8,7 @@ class Seq(Function, Sequence):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     def _evaluate(self):
-        return self.terms
+        return [self._value_resolve(t) for t in self.terms]
     def __getitem__(self, index):
         return self.terms[index]
     def __len__(self):
@@ -17,7 +17,9 @@ class Seq(Function, Sequence):
     def reduce(self, op = 'call'):
         target = self.terms[0]
         for term in self.terms[1:]:
-            target = Function(target, term).op(op)
+            target = Fn(target, term).op(op)
         return target
     # def _hashID(self):
     #     return w_hash(tuple(get_hash(t) for t in self.terms))
+
+from ._fn import Fn

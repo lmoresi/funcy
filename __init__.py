@@ -1,6 +1,8 @@
 # Requires:
 # wordhash
+# reseed
 
 from ._base import *
-Fn = Function
+from ._fn import *
 from . import misc
+from .special import *

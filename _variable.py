@@ -1,24 +1,12 @@
-from functools import wraps
-
 import numpy as np
 from collections.abc import Sequence
+from functools import cached_property, lru_cache
 
-from ._base import Function, getop
 from .exceptions import *
 
-def nullwrap(func):
-    @wraps(func)
-    def wrapper(self, arg, **kwargs):
-        # if arg is None:
-        #     raise NullValueDetected
-        try:
-            return func(self, arg, **kwargs)
-        except TypeError:
-            if self.null:
-                raise NullValueDetected
-            else:
-                return func(self, self._value_resolve(arg))
-    return wrapper
+from ._base import Function, refresh_wrap
+from .special import null
+
 
 class Variable(Function):
 
@@ -37,17 +25,12 @@ class Variable(Function):
                 return 'numeric'
 
     __slots__ = (
-        '_value_resolve',
         'data',
         'pipe',
         'dtype',
-        '_name',
         'scalar',
-        'terms',
-        'arg',
-        'kwargs',
-        'isnull',
         '_set_value',
+        '_length',
         )
 
     def __init__(self,
@@ -56,10 +39,9 @@ class Variable(Function):
             **kwargs,
             ):
 
-        self.nullify()
+        self.data = null
         self.pipe = None
         self.dtype = None
-        self._name = name
         check = self._check_arg(arg)
         if check == 'pipe':
             raise NotYetImplemented
@@ -70,11 +52,12 @@ class Variable(Function):
             self.scalar = True
             super().__init__(name = name, **kwargs)
         elif check == 'empty':
-            super().__init__(Function(), name = name, **kwargs)
+            super().__init__(Fn(), name = name, **kwargs)
         elif check == 'numeric':
-            if isinstance(arg, np.ndarray):
-                asarr = arg
+            if isinstance(arg, (np.ndarray, Sequence)):
+                asarr = np.array(arg)
                 self.scalar = False
+                self._length = len(asarr)
             else:
                 asarr = np.array(arg)
                 self.scalar = True
@@ -83,24 +66,25 @@ class Variable(Function):
         else:
             raise ValueError(arg)
         if self.scalar:
-            self.isnull = lambda: self.data is None
             self._set_value = self._set_value_scalar
         else:
-            self.isnull = lambda: np.isnull(self.data).any()
             self._set_value = self._set_value_array
         if check == 'numeric':
             self.value = arg
 
     def nullify(self):
-        self._nullify()
-    def _nullify(self):
-        self.data = None
+        self.value = None
     @property
     def null(self):
-        return self.isnull()
+        try:
+            self.data + 0
+            return False
+        except NullValueDetected:
+            return True
 
-    def _evaluate(self):
-        return self.value
+    @lru_cache(1)
+    def evaluate(self):
+        return self.data
     def out(self):
         if self.scalar:
             return self.data
@@ -109,9 +93,8 @@ class Variable(Function):
 
     @property
     def value(self):
-        data = self.data
-        if data is None: raise NullValueDetected
-        return data
+        return self.evaluate()
+        # return self.data
     @value.setter
     def value(self, val):
         self._set_value(val)
@@ -133,72 +116,78 @@ class Variable(Function):
 
 class MutableVariable(Variable):
 
+    # @cached_property
+    # def _set_value(self):
+    #     if self.scalar: return self._set_value_scalar
+    #     else: return self._set_value_array
+    @refresh_wrap
     def _set_value_scalar(self, val):
         try:
             self.data = self.dtype(self._value_resolve(val))
-        except TypeError:
-            self.data = None
+        except (NullValueDetected, TypeError):
+            self.data = null
+    @refresh_wrap
     def _set_value_array(self, val):
+        val = null if val is None else val
         try:
             self.data[...] = self._value_resolve(val)
-        except TypeError:
-            self.data = np.array(
-                self._value_resolve(val),
-                dtype = self.dtype
-                )
+        except NullValueDetected:
+            try:
+                val = self._value_resolve(val)
+                self.data = np.array(
+                    self._value_resolve(val)
+                    ).astype(self.dtype)
+            except (NullValueDetected, TypeError):
+                self.data = null
 
-    @nullwrap
     def __iadd__(self, arg):
-        self.data += arg
+        self.value = arg + self.data
         return self
-    @nullwrap
     def __isub__(self, arg):
-        self.data -= arg
+        self.value -= arg
         return self
-    @nullwrap
     def __imul__(self, arg):
-        self.data *= arg
+        self.value *= arg
         return self
-    @nullwrap
     def __itruediv__(self, arg):
-        self.data /= arg
-        return self
-    @nullwrap
+        self.value /= arg
     def __ifloordiv__(self, arg):
-        self.data //= arg
+        self.value //= arg
         return self
-    @nullwrap
     def __imod__(self, arg):
-        self.data %= arg
+        self.value %= arg
         return self
-    @nullwrap
     def __ipow__(self, arg):
-        self.data **= arg
+        self.value **= arg
         return self
 
-class ExtendableVariable(Variable, Sequence):
+# class ExtendableVariable(Variable, Sequence):
+#
+#     def _set_value(self, val):
+#         val = self._value_resolve(val)
+#         val = np.array(val, dtype = self.dtype)
+#         self.values.append(val)
+#     @property
+#     def data(self):
+#         return np.stack(self.datas)
+#     @data.setter
+#     def data(self, val):
+#         self.values.clear()
+#         if not val is None:
+#             self.values.append(self.dtype(val))
+#     @property
+#     def values(self):
+#         try:
+#             return self.datas
+#         except AttributeError:
+#             self.datas = []
+#             return self.datas
+#
+#     def __len__(self):
+#         return len(self.values)
+#     def __iter__(self):
+#         return iter(self.values)
 
-    def _set_value(self, val):
-        val = self._value_resolve(val)
-        val = np.array(val, dtype = self.dtype)
-        self.values.append(val)
-    @property
-    def data(self):
-        return np.stack(self.datas)
-    @data.setter
-    def data(self, val):
-        self.values.clear()
-        if not val is None:
-            self.values.append(self.dtype(val))
-    @property
-    def values(self):
-        try:
-            return self.datas
-        except AttributeError:
-            self.datas = []
-            return self.datas
-
-    def __len__(self):
-        return len(self.values)
-    def __iter__(self):
-        return iter(self.values)
+# At bottom to avoid circular reference:
+from ._operation import getop
+from ._fn import Fn

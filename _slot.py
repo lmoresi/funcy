@@ -4,10 +4,9 @@ from .exceptions import *
 class Slot(Function):
 
     def __init__(self, name = None):
-        self._slots = 1
         super().__init__(name = name)
-        if not name is None:
-            self._name = name
+    def _add_slots(self):
+        self._slots = 1
         if self.name is None:
             self._argslots = 1
             self._kwargslots = []

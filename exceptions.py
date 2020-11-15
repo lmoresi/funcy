@@ -21,3 +21,8 @@ class CannotProcess(FunctionException):
 
 class CannotDetermineDataType(FunctionException):
     pass
+
+class ClosureExceptions(FunctionException):
+    pass
+class NothingToClose(ClosureExceptions):
+    pass

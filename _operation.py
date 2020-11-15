@@ -1,3 +1,5 @@
+from functools import cached_property
+
 import operator
 import builtins
 
@@ -30,11 +32,9 @@ def getop(op):
         return op
 
 class Operation(Function):
-
     def __init__(self,
             *terms,
             op = None,
-            asList = False,
             ):
         if len(terms) == 1:
             if isinstance(terms[0], Seq):
@@ -45,16 +45,14 @@ class Operation(Function):
                 terms = Operation(*terms, op = sop)
                 if not type(terms) is tuple:
                     terms = terms,
-        self.operation = getop(op)
-        self.asList = asList
         super().__init__(*terms, op = op)
-
+    @cached_property
+    def operation(self):
+        return getop(self.kwargs['op'])
     def _evaluate(self):
-        ts = [self._value_resolve(t) for t in self.terms]
-        if self.asList:
-            out = self.operation(ts)
-        else:
-            out = self.operation(*ts)
-        return out
+        return self.operation(*(
+            self._value_resolve(t)
+                for t in self.terms
+            ))
 
 from ._seq import Seq

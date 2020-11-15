@@ -1,112 +1,180 @@
+from functools import cached_property, lru_cache, wraps
+import weakref
+from collections.abc import Iterable
+from itertools import product
+
 import numpy as np
 
 from wordhash import w_hash
+import reseed
 
 from .exceptions import *
 
 def convert(arg):
     try:
-        return Function(arg)
+        return Fn(arg)
     except RedundantConvert:
         return arg
 
-def _value_resolve(val):
-    while isinstance(val, Function):
-        val = val.value
-    return val
+def refresh_wrap(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        out = func(self, *args, **kwargs)
+        self.refresh()
+        return out
+    return wrapper
 
 class Function:
 
-    def __new__(cls, *args, **kwargs):
-        if cls is Function:
-            if len(args) == 0:
-                cls = Slot
-            elif len(args) > 1:
-                cls = Seq
-            else:
-                arg = args[0]
-                if len(kwargs) == 0 and isinstance(arg, Function):
-                    raise RedundantConvert
-                check = Variable._check_arg(arg)
-                if check is None:
-                    cls = Thing
-                else:
-                    cls = MutableVariable
-        obj = super().__new__(cls)
-        obj._value_resolve = _value_resolve
-        return obj
+    __slots__ = (
+        'terms',
+        'kwargs',
+        'prime',
+        'downstream',
+        '_slots',
+        '_argslots',
+        '_kwargslots',
+        '__dict__',
+        )
+
+    def _value_resolve(self, val):
+        while isinstance(val, Function):
+            val = val.evaluate()
+        return val
 
     def __init__(self, *terms, **kwargs):
-        # self.terms = [convert(t) for t in terms]
         self.terms = terms
-        if len(terms) == 1:
-            self.arg = terms[0]
-        else:
-            self.arg = terms
         self.kwargs = kwargs
-        # super().__init__(*self.args, **self.kwargs)
+        self.downstream = weakref.WeakSet()
+        if len(terms):
+            self.prime = self.terms[0]
+            for term in self.fnTerms:
+                term.downstream.add(self)
+    def _add_slots(self):
+        self._argslots, self._kwargslots, self._slots = self._count_slots()
+    def _count_slots(self):
+        argslots = 0
+        kwargslots = []
+        for term in self.openTerms:
+            if type(term) is Slot:
+                if term.argslots:
+                    argslots += 1
+                elif not term.name in kwargslots:
+                    kwargslots.append(term.name)
+            else:
+                kwargslots.extend(
+                    k for k in term.kwargslots if not k in kwargslots
+                    )
+                argslots += term.argslots
+        return argslots, kwargslots, argslots + len(kwargslots)
+    @cached_property
+    def fnTerms(self):
+        return [t for t in self.terms if isinstance(t, Function)]
+    @cached_property
+    def openTerms(self):
+        return [t for t in self.fnTerms if t.open]
+    @cached_property
+    def iterTerms(self):
+        return [t for t in self.fnTerms if isinstance(t, Iterable)]
+    @cached_property
+    def isiter(self):
+        return len(self.iterTerms)
+    @cached_property
+    def argslots(self):
+        try:
+            return self._argslots
+        except AttributeError:
+            self._add_slots()
+            return self._argslots
+    @cached_property
+    def kwargslots(self):
+        try:
+            return self._kwargslots
+        except AttributeError:
+            self._add_slots()
+            return self._kwargslots
+    @cached_property
+    def slots(self):
+        try:
+            return self._slots
+        except AttributeError:
+            self._add_slots()
+            return self._slots
+    @cached_property
+    def open(self):
+        return bool(self.slots)
 
+    @lru_cache(1)
     def evaluate(self):
-        if self.open:
-            raise EvaluationError("Cannot evaluate open function.")
-        else:
+        try:
             return self._evaluate()
+        except Exception as e:
+            if self.open:
+                raise EvaluationError("Cannot evaluate open function.")
+            elif self.isiter:
+                raise EvaluationError("Cannot evaluate iterable.")
+            else:
+                raise e
     def _evaluate(self):
         raise MissingAsset
+    def refresh(self):
+        self.evaluate.cache_clear()
+        for down in self.downstream:
+            down.refresh()
     @property
     def value(self):
         return self.evaluate()
-    @property
-    def name(self):
-        if not hasattr(self, '_name'):
-            return None
-        return str(self._name)
 
-    def _count_slots(self):
-        terms = self.terms
-        argslots = 0
-        kwargslots = []
-        for term in terms:
-            if isinstance(term, Function):
-                if type(term) is Slot:
-                    if term.argslots:
-                        argslots += 1
-                    elif not term.name in kwargslots:
-                        kwargslots.append(term.name)
-                else:
-                    kwargslots.extend(
-                        k for k in term.kwargslots if not k in kwargslots
-                        )
-                    argslots += term.argslots
-        return argslots, kwargslots
-    def _add_slot_attrs(self):
-        if not '_slots' in dir(self):
-            self._argslots, self._kwargslots = self._count_slots()
-            self._slots = self._argslots + len(self._kwargslots)
+    def __iter__(self):
+        if self.isiter:
+            its = [
+                [t,] if not isinstance(t, Iterable) else t
+                    for t in self.terms
+                ]
+            for args in product(*its):
+                yield type(self)(*args, **self.kwargs)
         else:
-            pass
-    @property
-    def slots(self):
-        self._add_slot_attrs()
-        return self._slots
-    @property
-    def argslots(self):
-        self._add_slot_attrs()
-        return self._argslots
-    @property
-    def kwargslots(self):
-        self._add_slot_attrs()
-        return self._kwargslots
-    @property
-    def open(self):
-        return bool(self.slots)
+            for i in range(len(self)):
+                yield self[i]
+    @cached_property
+    def get(self):
+        return Getter(self)
+    def __len__(self):
+        try:
+            return self._length
+        except AttributeError:
+            if self.isiter:
+                return np.prod([len(t) for t in self.iterTerms])
+            else:
+                return len(self.value)
+
+    def __getitem__(self, key):
+        if self.isiter:
+            return Sample.__getitem__(self, key)
+        else:
+            if key >= len(self):
+                raise IndexError
+            return self.get[key]
+
+    @cached_property
+    def name(self):
+        try:
+            return self.kwargs['name']
+        except KeyError:
+            return None
+
     def allclose(self, arg):
         target = self
         while target.open:
             target = target.close(arg)
         assert not target.open
         return target
-    def close(self,
+    @lru_cache()
+    def close(self, *queryArgs, **queryKwargs):
+        if not self.open:
+            raise NothingToClose
+        return self._close(*queryArgs, **queryKwargs)
+    def _close(self,
             *queryArgs,
             **queryKwargs
             ):
@@ -157,46 +225,59 @@ class Function:
         else:
             outObj = self
         return outObj
+    def __call__(self, *args, **kwargs):
+        if len(args) or len(kwargs):
+            self = self.close(*args, **kwargs)
+        return self.evaluate()
 
     def _operate(self, *args, op = None, truthy = False, **kwargs):
         return Operation(self, *args, op = op, **kwargs)
 
-    def __eq__(self, *args):
-        return self._operate(*args, op = 'eq', truthy = True)
-    def __ne__(self, *args):
-        return self._operate(*args, op = 'ne', truthy = True)
-    def __ge__(self, *args):
-        return self._operate(*args, op = 'ge', truthy = True)
-    def __le__(self, *args):
-        return self._operate(*args, op = 'le', truthy = True)
-    def __gt__(self, *args):
-        return self._operate(*args, op = 'gt', truthy = True)
-    def __lt__(self, *args):
-        return self._operate(*args, op = 'lt', truthy = True)
-    def __and__(self, *args):
-        return self._operate(*args, op = 'all', truthy = True)
-    def __or__(self, *args):
-        return self._operate(*args, op = 'any', truthy = True)
-    def __invert__(self, *args):
-        return self._operate(*args, op = 'not', truthy = True)
-    def __add__(self, *args):
-        return self._operate(*args, op = 'add')
-    def __floordiv__(self, *args):
-        return self._operate(*args, op = 'floordiv')
-    def __truediv__(self, *args):
-        return self._operate(*args, op = 'truediv')
-    def __mod__(self, *args):
-        return self._operate(*args, op = 'mod')
-    def __mul__(self, *args):
-        return self._operate(*args, op = 'mul')
-    def __pow__(self, *args):
-        return self._operate(*args, op = 'pow')
-    def __sub__(self, *args):
-        return self._operate(*args, op = 'sub')
-    def __truediv__(self, *args):
-        return self._operate(*args, op = 'truediv')
-    def __neg__(self, *args):
-        return self._operate(*args, op = 'neg')
+    def __add__(self, other): return self._operate(other, op = 'add')
+    def __sub__(self, other):return self._operate(other, op = 'sub')
+    def __mul__(self, other): return self._operate(other, op = 'mul')
+    def __matmul__(self, other): return self._operate(other, op = 'matmul')
+    def __truediv__(self, other): return self._operate(other, op = 'truediv')
+    def __floordiv__(self, other): return self._operate(other, op = 'floordiv')
+    def __mod__(self, other): return self._operate(other, op = 'mod')
+    def __divmod__(self, other): return self._operate(other, op = 'divmod')
+    def __pow__(self, other): return self._operate(other, op = 'pow')
+    # def __lshift__(self, other): return self._operate(other, op = 'lshift')
+    # def __rshift__(self, other): return self._operate(other, op = 'rshift')
+    def __and__(self, other): return self._operate(other, op = 'all')
+    # def __xor__(self, other):return self._operate(other, op = 'xor')
+    def __or__(self, other): return self._operate(other, op = 'not')
+
+    def __radd__(self, other): return self._operate(other, op = 'add')
+    def __rsub__(self, other):return self._operate(other, op = 'sub')
+    def __rmul__(self, other): return self._operate(other, op = 'mul')
+    def __rmatmul__(self, other): return self._operate(other, op = 'matmul')
+    def __rtruediv__(self, other): return self._operate(other, op = 'truediv')
+    def __rfloordiv__(self, other): return self._operate(other, op = 'floordiv')
+    def __rmod__(self, other): return self._operate(other, op = 'mod')
+    def __rdivmod__(self, other): return self._operate(other, op = 'divmod')
+    def __rpow__(self, other): return self._operate(other, op = 'pow')
+    # def __rlshift__(self, other): return self._operate(other, op = 'lshift')
+    # def __rrshift__(self, other): return self._operate(other, op = 'rshift')
+    def __rand__(self, other): return self._operate(other, op = 'all')
+    # def __rxor__(self, other):return self._operate(other, op = 'xor')
+    def __ror__(self, other): return self._operate(other, op = 'any')
+
+    def __neg__(self): return self._operate(op = 'neg')
+    def __pos__(self): return self._operate(op = 'pos')
+    def __abs__(self): return self._operate(op = 'abs')
+    def __invert__(self): return self._operate(op = 'not')
+
+    # def __complex__(self): raise NullValueDetected
+    # def __int__(self): raise NullValueDetected
+    # def __float__(self): raise NullValueDetected
+    #
+    # def __index__(self): raise NullValueDetected # for integrals
+
+    # def __round__(self, ndigits = 0): raise NullValueDetected
+    # def __trunc__(self): raise NullValueDetected
+    # def __floor__(self): raise NullValueDetected
+    # def __ceil__(self): raise NullValueDetected
 
     def __bool__(self):
         return bool(self.value)
@@ -215,24 +296,25 @@ class Function:
     #     return Operation(*args, op = bool, invert = True)
 
     def pipe_out(self, arg):
-        if type(arg) is list:
-            try:
-                arg = arg[0]
-            except IndexError:
-                arg = None
-            outcls = ExtendableVariable
-        else:
-            outcls = FixedVariable
-        arg = convert(arg)
-        if not isinstance(arg, FixedVariable):
-            raise FunctionException(arg)
-        return outcls(self, **arg.kwargs)
+        raise NotYetImplemented
+        # if type(arg) is list:
+        #     try:
+        #         arg = arg[0]
+        #     except IndexError:
+        #         arg = None
+        #     outcls = ExtendableVariable
+        # else:
+        #     outcls = FixedVariable
+        # arg = convert(arg)
+        # if not isinstance(arg, FixedVariable):
+        #     raise FunctionException(arg)
+        # return outcls(self, **arg.kwargs)
     def __rshift__(self, arg):
         return self.pipe_out(arg)
     def __lshift__(self, arg):
         return arg.pipe_out(self)
 
-    @property
+    @cached_property
     def namestr(self):
         return self._namestr()
     def _namestr(self):
@@ -242,7 +324,7 @@ class Function:
             termstr = ', '.join(termstr(t) for t in self.terms)
             out += '(' + termstr + ')'
         return out
-    @property
+    @cached_property
     def kwargstr(self):
         return self._kwargstr()
     def _kwargstr(self):
@@ -274,20 +356,14 @@ class Function:
         return self.namestr
     def __str__(self):
         return ' == '.join([self.namestr, self.valstr])
-    @property
+    @cached_property
     def hashID(self):
         return w_hash(self.namestr)
-
-    def __call__(self, *args, **kwargs):
-        if len(args) or len(kwargs):
-            self = self.close(*args, **kwargs)
-        return self.evaluate()
-
-    @property
-    def get(self):
-        return Getter(self)
-    def __getitem__(self, key):
-        return self.value[key]
+    @cached_property
+    def _hashInt(self):
+        return reseed.digits(12, seed = self.hashID)
+    def __hash__(self):
+        return self._hashInt
 
     def op(self, arg, **kwargs):
         return Operation(self, op = arg, **kwargs)
@@ -301,16 +377,18 @@ class Getter:
     def __call__(self, *args):
         return self.__getattr__(*args)
     def __getattr__(self, *keys):
-        return Function(self.host, *keys).reduce(getattr)
+        return Fn(self.host, *keys).reduce(getattr)
     def __getitem__(self, arg):
         if type(arg) is tuple:
-            return Function(self.host, *arg).reduce('getitem')
+            return Fn(self.host, *arg).reduce('getitem')
         else:
-            return Function(self.host, arg).op('getitem')
+            return Fn(self.host, arg).op('getitem')
 
 from ._operation import Operation, getop #, Boolean
 from ._trier import Trier
 from ._seq import Seq
-from ._variable import Variable, MutableVariable, ExtendableVariable
+from ._variable import Variable, MutableVariable
 from ._thing import Thing
 from ._slot import Slot
+from ._fn import Fn
+from ._sample import *

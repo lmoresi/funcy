@@ -2,6 +2,11 @@ from ._base import Function
 from .exceptions import *
 
 class Trier(Function):
+    __slots__ = (
+        'tryFunc',
+        'altVal',
+        'exc',
+        )
     def __init__(self, tryFunc, exc = Exception, altVal = None):
         if not isinstance(tryFunc, Function):
             raise TypeError
