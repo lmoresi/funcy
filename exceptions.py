@@ -6,6 +6,8 @@ class MissingAsset(FunctionException):
 
 class NullValueDetected(FunctionException):
     pass
+class InfiniteValueDetected(FunctionException):
+    pass
 
 class EvaluationError(FunctionException):
     pass
@@ -25,4 +27,7 @@ class CannotDetermineDataType(FunctionException):
 class ClosureExceptions(FunctionException):
     pass
 class NothingToClose(ClosureExceptions):
+    pass
+
+class FunctionCreationException(FunctionException):
     pass

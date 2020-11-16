@@ -189,5 +189,4 @@ class MutableVariable(Variable):
 #         return iter(self.values)
 
 # At bottom to avoid circular reference:
-from ._operation import getop
 from ._fn import Fn

@@ -7,43 +7,82 @@ class InfinInt(int):
     def __init__(self, pos = True):
         self._posArg = pos
         super().__init__()
-    def _neg_inv(self, val):
-        if self._posArg: return val
-        else: return not val
-    def _inf_comp(func):
-        @wraps(func)
-        def wrapper(self, arg):
-            if isinstance(arg, InfinInt): return False
-            else: return func(self, arg)
-        return wrapper
-    @_inf_comp
-    def __eq__(self, arg): return False
-    @_inf_comp
-    def __ne__(self, arg): return True
-    @_inf_comp
-    def __lt__(self, arg): return self._neg_inv(False)
-    @_inf_comp
-    def __le__(self, arg): return self._neg_inv(False)
-    @_inf_comp
-    def __gt__(self, arg): return self._neg_inv(True)
-    @_inf_comp
-    def __ge__(self, arg): return self._neg_inv(True)
-    @_inf_comp
-    def __neg__(self, val): return ninf
 
-    def __bool__(self, val): return self._posArg
-    def __add__(self, arg): return self
-    def __floordiv__(self, arg): return self
-    def __truediv__(self, arg): return self
-    def __mod__(self, arg): return self
-    def __mul__(self, arg): return self
-    def __pow__(self, arg): return self
-    def __sub__(self, arg): return self
-    def __truediv__(self, arg): return self
+    # def __getattr__(self, key): raise InfiniteValueDetected
+    # def __getitem__(self, key): raise InfiniteValueDetected
+    # def __setitem__(self, key, val): raise InfiniteValueDetected
 
-    def __index__(self):
-        if self._posArg:
-            return 999999999
+    def __add__(self, other): return self
+    def __sub__(self, other): return self
+    def __mul__(self, other): return self
+    def __matmul__(self, other): return self
+    def __truediv__(self, other): return self
+    def __floordiv__(self, other): return self
+    def __mod__(self, other): return self
+    def __divmod__(self, other): return self
+    def __pow__(self, other, modulo = None): return self
+    def __lshift__(self, other): return self
+    def __rshift__(self, other): return self
+    # def __and__(self, other): return True
+    # def __xor__(self, other): return True
+    # def __or__(self, other): raise InfiniteValueDetected
+
+    def __radd__(self, other): return self
+    def __rsub__(self, other): return self
+    def __rmul__(self, other): return self
+    def __rmatmul__(self, other): return self
+    def __rtruediv__(self, other): return self
+    def __rfloordiv__(self, other): return self
+    def __rmod__(self, other): return self
+    def __rdivmod__(self, other): return self
+    def __rpow__(self, other, modulo = None): return self
+    def __rlshift__(self, other): return self
+    def __rrshift__(self, other): return self
+    # def __rand__(self, other): raise InfiniteValueDetected
+    # def __rxor__(self, other): raise InfiniteValueDetected
+    # def __ror__(self, other): raise InfiniteValueDetected
+
+    def __iadd__(self, other): return self
+    def __isub__(self, other): return self
+    def __imul__(self, other): return self
+    def __imatmul__(self, other): return self
+    def __itruediv__(self, other): return self
+    def __ifloordiv__(self, other): return self
+    def __imod__(self, other): return self
+    def __ipow__(self, other, modulo = None): return self
+    def __ilshift__(self, other): return self
+    def __irshift__(self, other): return self
+    # def __iand__(self, other): return self
+    # def __ixor__(self, other): return self
+    # def __ior__(self, other): return self
+
+    def __neg__(self): return ninf if self._posArg else inf
+    def __pos__(self): raise NotImplemented
+    def __abs__(self): return inf
+    def __invert__(self): raise NotImplemented
+
+    def __complex__(self): raise NotImplemented
+    def __int__(self): return self
+    def __float__(self): return np.inf
+
+    def __index__(self): raise InfiniteValueDetected # for integrals
+
+    def __round__(self, ndigits = 0): raise InfiniteValueDetected
+    def __trunc__(self): raise InfiniteValueDetected
+    def __floor__(self): raise InfiniteValueDetected
+    def __ceil__(self): raise InfiniteValueDetected
+
+    def __coerce__ (self): raise InfiniteValueDetected
+
+    def __lt__(self, other): return not self._posArg
+    def __le__(self, other): return not self._posArg
+    def __eq__(self, other): False
+    def __ne__(self, other): True
+    def __gt__(self, other): return self._posArg
+    def __ge__(self, other): return self._posArg
+
+    def __bool__(self):
+        return True
 
     def __repr__(self):
         if self._posArg:
@@ -121,6 +160,13 @@ class Null(numbers.Number):
     def __ceil__(self): raise NullValueDetected
 
     def __coerce__ (self): raise NullValueDetected
+
+    def __lt__(self, other): raise NullValueDetected
+    def __le__(self, other): raise NullValueDetected
+    def __eq__(self, other): raise NullValueDetected
+    def __ne__(self, other): raise NullValueDetected
+    def __gt__(self, other): raise NullValueDetected
+    def __ge__(self, other): raise NullValueDetected
 
 null = Null()
 

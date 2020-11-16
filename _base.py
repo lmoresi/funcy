@@ -1,6 +1,6 @@
 from functools import cached_property, lru_cache, wraps
 import weakref
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from itertools import product
 
 import numpy as np
@@ -24,10 +24,11 @@ def refresh_wrap(func):
         return out
     return wrapper
 
-class Function:
+class Function(Sequence):
 
     __slots__ = (
         'terms',
+        'keysDict',
         'kwargs',
         'prime',
         'downstream',
@@ -42,7 +43,7 @@ class Function:
             val = val.evaluate()
         return val
 
-    def __init__(self, *terms, **kwargs):
+    def __init__(self, *terms, keys = dict(), **kwargs):
         self.terms = terms
         self.kwargs = kwargs
         self.downstream = weakref.WeakSet()
@@ -50,6 +51,30 @@ class Function:
             self.prime = self.terms[0]
             for term in self.fnTerms:
                 term.downstream.add(self)
+        if len(keys):
+            self.keysDict = keys
+
+    @lru_cache(1)
+    def evaluate(self):
+        try:
+            return self._evaluate()
+        except Exception as e:
+            if self.open:
+                raise EvaluationError("Cannot evaluate open function.")
+            # elif self.isiter:
+            #     raise EvaluationError("Cannot evaluate iterable.")
+            else:
+                raise e
+    def _evaluate(self):
+        return iter(self)
+    def refresh(self):
+        self.evaluate.cache_clear()
+        for down in self.downstream:
+            down.refresh()
+    @property
+    def value(self):
+        return self.evaluate()
+
     def _add_slots(self):
         self._argslots, self._kwargslots, self._slots = self._count_slots()
     def _count_slots(self):
@@ -75,7 +100,13 @@ class Function:
         return [t for t in self.fnTerms if t.open]
     @cached_property
     def iterTerms(self):
-        return [t for t in self.fnTerms if isinstance(t, Iterable)]
+        return [t for t in self.fnTerms if isinstance(t, Seq)]
+    @cached_property
+    def _termsAsIters(self):
+        return [
+            t.value if isinstance(t, Seq) else (t,)
+                for t in self.terms
+            ]
     @cached_property
     def isiter(self):
         return len(self.iterTerms)
@@ -103,66 +134,6 @@ class Function:
     @cached_property
     def open(self):
         return bool(self.slots)
-
-    @lru_cache(1)
-    def evaluate(self):
-        try:
-            return self._evaluate()
-        except Exception as e:
-            if self.open:
-                raise EvaluationError("Cannot evaluate open function.")
-            elif self.isiter:
-                raise EvaluationError("Cannot evaluate iterable.")
-            else:
-                raise e
-    def _evaluate(self):
-        raise MissingAsset
-    def refresh(self):
-        self.evaluate.cache_clear()
-        for down in self.downstream:
-            down.refresh()
-    @property
-    def value(self):
-        return self.evaluate()
-
-    def __iter__(self):
-        if self.isiter:
-            its = [
-                [t,] if not isinstance(t, Iterable) else t
-                    for t in self.terms
-                ]
-            for args in product(*its):
-                yield type(self)(*args, **self.kwargs)
-        else:
-            for i in range(len(self)):
-                yield self[i]
-    @cached_property
-    def get(self):
-        return Getter(self)
-    def __len__(self):
-        try:
-            return self._length
-        except AttributeError:
-            if self.isiter:
-                return np.prod([len(t) for t in self.iterTerms])
-            else:
-                return len(self.value)
-
-    def __getitem__(self, key):
-        if self.isiter:
-            return Sample.__getitem__(self, key)
-        else:
-            if key >= len(self):
-                raise IndexError
-            return self.get[key]
-
-    @cached_property
-    def name(self):
-        try:
-            return self.kwargs['name']
-        except KeyError:
-            return None
-
     def allclose(self, arg):
         target = self
         while target.open:
@@ -192,7 +163,7 @@ class Function:
         queryArgs = iter(queryArgs[:self.argslots])
         terms = []
         changes = 0
-        for t in self.terms:
+        for t in self.fnTerms:
             if type(t) is Slot:
                 if t.argslots:
                     try:
@@ -204,7 +175,7 @@ class Function:
                     if t.name in queryKwargs:
                         t = queryKwargs[t.name]
                         changes += 1
-            elif isinstance(t, Function):
+            else:
                 if t.open:
                     queryArgs = list(queryArgs)
                     subArgs = queryArgs[:t.argslots]
@@ -230,6 +201,36 @@ class Function:
             self = self.close(*args, **kwargs)
         return self.evaluate()
 
+    @cached_property
+    def get(self):
+        return Getter(self)
+    @lru_cache(32)
+    def __getitem__(self, arg):
+        try:
+            return self.terms[arg]
+        except TypeError:
+            try:
+                return self.terms[self.keysDict[arg]]
+            except AttributeError:
+                raise IndexError
+    def __iter__(self):
+        return iter(self.terms)
+    def __len__(self):
+        return self._length
+    @cached_property
+    def _length(self):
+        return len(self.terms)
+
+    @cached_property
+    def name(self):
+        try:
+            return self.kwargs['name']
+        except KeyError:
+            return None
+
+    @lru_cache
+    def operate(self, *args, **kwargs):
+        return self._operate(*args, **kwargs)
     def _operate(self, *args, op = None, truthy = False, **kwargs):
         return Operation(self, *args, op = op, **kwargs)
 
@@ -266,7 +267,7 @@ class Function:
     def __neg__(self): return self._operate(op = 'neg')
     def __pos__(self): return self._operate(op = 'pos')
     def __abs__(self): return self._operate(op = 'abs')
-    def __invert__(self): return self._operate(op = 'not')
+    def __invert__(self): return self._operate(op = 'inv')
 
     # def __complex__(self): raise NullValueDetected
     # def __int__(self): raise NullValueDetected
@@ -281,38 +282,13 @@ class Function:
 
     def __bool__(self):
         return bool(self.value)
-
-    # @staticmethod
-    # def bool(arg):
-    #     return Operation(*args, op = bool)
-    # @staticmethod
-    # def all(*args):
-    #     return Operation(*args, op = all)
-    # @staticmethod
-    # def any(*args):
-    #     return Operation(*args, op = any)
-    # @staticmethod
-    # def not_fn(*args):
-    #     return Operation(*args, op = bool, invert = True)
+    def all(self):
+        return Operation(*self.terms, op = 'all')
+    def any(self):
+        return Operation(*self.terms, op = 'any')
 
     def pipe_out(self, arg):
         raise NotYetImplemented
-        # if type(arg) is list:
-        #     try:
-        #         arg = arg[0]
-        #     except IndexError:
-        #         arg = None
-        #     outcls = ExtendableVariable
-        # else:
-        #     outcls = FixedVariable
-        # arg = convert(arg)
-        # if not isinstance(arg, FixedVariable):
-        #     raise FunctionException(arg)
-        # return outcls(self, **arg.kwargs)
-    def __rshift__(self, arg):
-        return self.pipe_out(arg)
-    def __lshift__(self, arg):
-        return arg.pipe_out(self)
 
     @cached_property
     def namestr(self):
@@ -366,23 +342,29 @@ class Function:
         return self._hashInt
 
     def op(self, arg, **kwargs):
-        return Operation(self, op = arg, **kwargs)
+        return self.operate(op = arg, **kwargs)
 
     def exc(self, exc = Exception, altVal = None):
         return Trier(self, exc = exc, altVal = altVal)
 
-class Getter:
+    def reduce(self, op = 'call'):
+        target = self.terms[0]
+        for term in self.terms[1:]:
+            target = Fn(target, term).op(op)
+        return target
+
+class Getter(Sequence):
     def __init__(self, host):
         self.host = host
     def __call__(self, *args):
-        return self.__getattr__(*args)
-    def __getattr__(self, *keys):
         return Fn(self.host, *keys).reduce(getattr)
     def __getitem__(self, arg):
-        if type(arg) is tuple:
-            return Fn(self.host, *arg).reduce('getitem')
-        else:
-            return Fn(self.host, arg).op('getitem')
+        return Fn(self.host, arg).op('getitem')
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+    def __len__(self):
+        return len(self.host.value)
 
 from ._operation import Operation, getop #, Boolean
 from ._trier import Trier
@@ -391,4 +373,64 @@ from ._variable import Variable, MutableVariable
 from ._thing import Thing
 from ._slot import Slot
 from ._fn import Fn
-from ._sample import *
+from ._seq import *
+
+
+    # def __len__(self):
+    #     return self._length
+    # @cached_property
+    # def _length(self):
+    #     if self.isiter:
+    #         v = 1
+    #         for t in self.iterTerms:
+    #             v *= len(val)
+    #         return v
+    #     else:
+    #         return len(self.value)
+
+        # if self.isiter:
+        #     its = [
+        #         [t,] if not isinstance(t, Iterable) else t
+        #             for t in self.terms
+        #         ]
+        #     for args in product(*its):
+        #         yield type(self)(*args, **self.kwargs)
+        # else:
+    # def __getitem__(self, key):
+    #     if self.isiter:
+    #         return Seq.__getitem__(self, key)
+    #     else:
+    #         if key >= len(self):
+    #             raise IndexError
+    #         return self.get[key]
+
+
+
+    # @staticmethod
+    # def bool(arg):
+    #     return Operation(*args, op = bool)
+    # @staticmethod
+    # def all(*args):
+    #     return Operation(*args, op = all)
+    # @staticmethod
+    # def any(*args):
+    #     return Operation(*args, op = any)
+    # @staticmethod
+    # def not_fn(*args):
+    #     return Operation(*args, op = bool, invert = True)
+        # if type(arg) is list:
+        #     try:
+        #         arg = arg[0]
+        #     except IndexError:
+        #         arg = None
+        #     outcls = ExtendableVariable
+        # else:
+        #     outcls = FixedVariable
+        # arg = convert(arg)
+        # if not isinstance(arg, FixedVariable):
+        #     raise FunctionException(arg)
+        # return outcls(self, **arg.kwargs)
+    # def __rshift__(self, arg):
+    #     return self.pipe_out(arg)
+    # def __lshift__(self, arg):
+    #     return arg.pipe_out(self)

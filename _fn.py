@@ -5,7 +5,7 @@ class _Fn:
         if len(args) == 0:
             cls = Slot
         elif len(args) > 1:
-            cls = Seq
+            return Group(*args, **kwargs)
         else:
             arg = args[0]
             if len(kwargs) == 0 and isinstance(arg, Function):
@@ -16,35 +16,32 @@ class _Fn:
             else:
                 cls = MutableVariable
         return cls(*args, **kwargs)
-    def __getitem__(self, arg):
-        if isinstance(arg, Sample):
-            return arg
+    def __getitem__(self, arg, **kwargs):
+        if isinstance(arg, Seq):
+            raise TypeError(arg, type(arg))
         elif type(arg) is tuple:
-            return Arbitrary(arg)
+            return Seq(arg, **kwargs)
         elif type(arg) is slice:
             start, stop, step = arg.start, arg.stop, arg.step
             step = 1 if step is None else step
-            if isinstance(step, numbers.Number):
-                return Regular(start, stop, step)
-            elif isinstance(step, Furcation):
+            if isinstance(step, Furcation):
                 raise NotYetImplemented
-            else:
-                if all((
-                        isinstance(a, numbers.Integral)
-                            for a in (start, stop)
-                        )):
-                    return Choice(start, stop, step)
-                else:
-                    return Random(start, stop, step)
+            try:
+                return PeriodicSeq(start, stop, step, **kwargs)
+            except FunctionCreationException:
+                try:
+                    return Continuum(start, stop, step, **kwargs)
+                except FunctionCreationException:
+                    return RandomSeq(start, stop, step, **kwargs)
         else:
-            return Single(arg)
+            return Seq((arg,) **kwargs)
 
 Fn = _Fn()
 
 from ._base import Function
-from ._seq import Seq
 from ._variable import Variable, MutableVariable
+from ._group import Group
 from ._thing import Thing
 from ._slot import Slot
 
-from ._sample import *
+from ._seq import *

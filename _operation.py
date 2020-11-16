@@ -1,5 +1,5 @@
-from functools import cached_property
-
+from functools import cached_property, lru_cache
+from itertools import product
 import operator
 import builtins
 
@@ -9,12 +9,10 @@ from .exceptions import *
 ops = dict(
     getitem = lambda x, y: x[y],
     call = lambda x, y: x(y),
-    all = lambda *a: all(a),
-    any = lambda *a: any(a),
+    all = lambda a: all(a),
+    any = lambda a: any(a),
+    inv = lambda a: not a,
     )
-ops.update({
-    'not': lambda x: not x
-    })
 
 def getop(op):
     if op is None:
@@ -36,9 +34,6 @@ class Operation(Function):
             *terms,
             op = None,
             ):
-        if len(terms) == 1:
-            if isinstance(terms[0], Seq):
-                terms = tuple([*terms[0]])
         if type(op) is tuple:
             sops, op = op[:-1], op[-1]
             for sop in sops:
@@ -50,9 +45,32 @@ class Operation(Function):
     def operation(self):
         return getop(self.kwargs['op'])
     def _evaluate(self):
-        return self.operation(*(
-            self._value_resolve(t)
-                for t in self.terms
-            ))
+        if self.isiter:
+            return SeqIterable(self)
+        else:
+            return self._op_compute(*self.terms)
+    def _op_compute(self, *args):
+        try:
+            return self.operation(*(
+                self._value_resolve(a)
+                    for a in args
+                ))
+        except Exception as e:
+            print(args)
+            raise e
+    def _iter(self):
+        return (self._op_compute(*args) for args in self._iterProd())
+    def _iterProd(self):
+        return product(*self._termsAsIters)
+    @cached_property
+    def _seqLength(self):
+        v = 1
+        for t in self.iterTerms:
+            v *= len(t.value)
+        return v
 
-from ._seq import Seq
+class Reduction(Operation):
+    pass
+
+# At bottom to avoid circular reference (should fix this):
+from ._seq import SeqIterable
