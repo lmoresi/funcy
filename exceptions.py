@@ -1,33 +1,30 @@
-class FunctionException(Exception):
+class FuncyException(Exception):
     pass
 
-class MissingAsset(FunctionException):
+class MissingAsset(FuncyException):
     pass
 
-class NullValueDetected(FunctionException):
+class NullValueDetected(FuncyException):
     pass
-class InfiniteValueDetected(FunctionException):
+class InfiniteValueDetected(FuncyException):
     pass
 
-class EvaluationError(FunctionException):
+class EvaluationError(FuncyException):
     pass
 
 class NotYetImplemented(Exception):
     pass
 
-class RedundantConvert(FunctionException):
+class RedundantConvert(FuncyException):
     pass
 
-class CannotProcess(FunctionException):
+class CannotProcess(FuncyException):
     pass
 
-class CannotDetermineDataType(FunctionException):
+class CannotDetermineDataType(FuncyException):
     pass
 
-class ClosureExceptions(FunctionException):
+class ClosureExceptions(FuncyException):
     pass
 class NothingToClose(ClosureExceptions):
-    pass
-
-class FunctionCreationException(FunctionException):
     pass

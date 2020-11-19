@@ -2,37 +2,22 @@ from functools import cached_property, lru_cache
 from itertools import product
 import operator
 import builtins
+import itertools
+
+import numpy as np
+import scipy as sp
 
 from ._base import Function
+from . import utilities
 from .exceptions import *
 
-ops = dict(
-    getitem = lambda x, y: x[y],
-    call = lambda x, y: x(y),
-    all = lambda a: all(a),
-    any = lambda a: any(a),
-    inv = lambda a: not a,
-    )
-
-def getop(op):
-    if op is None:
-        return lambda *args: args
-    elif type(op) is str:
-        if op in ops:
-            return ops[op]
-        else:
-            try:
-                return getattr(builtins, op)
-            except AttributeError:
-                return getattr(operator, op)
-    else:
-        assert callable(op)
-        return op
-
 class Operation(Function):
+    __slots__ = ('opkwargs', 'opkey', 'opfn')
     def __init__(self,
             *terms,
             op = None,
+            seq = True,
+            **kwargs,
             ):
         if type(op) is tuple:
             sops, op = op[:-1], op[-1]
@@ -40,37 +25,52 @@ class Operation(Function):
                 terms = Operation(*terms, op = sop)
                 if not type(terms) is tuple:
                     terms = terms,
-        super().__init__(*terms, op = op)
+        self.opkwargs = kwargs
+        self.opfn = op
+        super().__init__(*terms, op = op, seq = seq, **kwargs)
     @cached_property
-    def operation(self):
-        return getop(self.kwargs['op'])
+    def seqIterable(self):
+        return SeqIterable(self)
+    @cached_property
+    def _op_method(self):
+        if self.opseq: return lambda: self.seqIterable
+        else: return lambda: self._op_compute(*self.terms)
+    @cached_property
+    def opseq(self):
+        if self.kwargs['seq']:
+            if self.isSeq:
+                return True
+        return False
     def _evaluate(self):
-        if self.isiter:
-            return SeqIterable(self)
-        else:
-            return self._op_compute(*self.terms)
+        return self._op_method()
     def _op_compute(self, *args):
-        try:
-            return self.operation(*(
-                self._value_resolve(a)
-                    for a in args
-                ))
-        except Exception as e:
-            print(args)
-            raise e
+        return self.opfn(
+            *(self._value_resolve(a) for a in args),
+            **self.opkwargs,
+            )
     def _iter(self):
         return (self._op_compute(*args) for args in self._iterProd())
     def _iterProd(self):
-        return product(*self._termsAsIters)
-    @cached_property
+        return product(*(
+            t.value if t in self.seqTerms else (t,)
+                for t in self.terms
+            ))
     def _seqLength(self):
         v = 1
-        for t in self.iterTerms:
-            v *= len(t.value)
+        for t in self.seqTerms:
+            v *= seqlength(t)
         return v
+    def _titlestr(self):
+        return self.opfn.__name__
 
-class Reduction(Operation):
-    pass
+    def _kwargstr(self):
+        kwargs = self.opkwargs.copy()
+        if self.isSeq and not self.opseq:
+            kwargs['seq'] = False
+        if kwargs:
+            return utilities.kwargstr(**kwargs)
+        else:
+            return ''
 
 # At bottom to avoid circular reference (should fix this):
-from ._seq import SeqIterable
+from .seq import SeqIterable, seqlength

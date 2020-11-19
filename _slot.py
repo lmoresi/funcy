@@ -15,7 +15,7 @@ class Slot(Function):
             self._kwargslots = [self.name]
     def close(self, *args, **kwargs):
         if len(args) + len(kwargs) > self._slots:
-            raise FunctionException
+            raise FuncyException
         if len(args):
             out = args[0]
         elif len(kwargs):
@@ -23,4 +23,4 @@ class Slot(Function):
                 raise KeyError
             out = kwargs.values()[0]
         return out
-        # raise FunctionException("Cannot close a Slot function.")
+        # raise FuncyException("Cannot close a Slot function.")

@@ -8,6 +8,7 @@ import numpy as np
 from wordhash import w_hash
 import reseed
 
+from . import utilities
 from .exceptions import *
 
 def convert(arg):
@@ -35,6 +36,7 @@ class Function(Sequence):
         '_slots',
         '_argslots',
         '_kwargslots',
+        '__weakref__',
         '__dict__',
         )
 
@@ -61,12 +63,14 @@ class Function(Sequence):
         except Exception as e:
             if self.open:
                 raise EvaluationError("Cannot evaluate open function.")
-            # elif self.isiter:
+            # elif self.isSeq:
             #     raise EvaluationError("Cannot evaluate iterable.")
             else:
                 raise e
     def _evaluate(self):
-        return iter(self)
+        raise MissingAsset
+    # def _evaluate(self):
+    #     return iter(self)
     def refresh(self):
         self.evaluate.cache_clear()
         for down in self.downstream:
@@ -74,6 +78,8 @@ class Function(Sequence):
     @property
     def value(self):
         return self.evaluate()
+    def _resolve_terms(self):
+        return (self._value_resolve(t) for t in self.terms)
 
     def _add_slots(self):
         self._argslots, self._kwargslots, self._slots = self._count_slots()
@@ -99,17 +105,11 @@ class Function(Sequence):
     def openTerms(self):
         return [t for t in self.fnTerms if t.open]
     @cached_property
-    def iterTerms(self):
-        return [t for t in self.fnTerms if isinstance(t, Seq)]
+    def seqTerms(self):
+        return [t for t in self.fnTerms if t.isSeq]
     @cached_property
-    def _termsAsIters(self):
-        return [
-            t.value if isinstance(t, Seq) else (t,)
-                for t in self.terms
-            ]
-    @cached_property
-    def isiter(self):
-        return len(self.iterTerms)
+    def isSeq(self):
+        return bool(self.seqTerms)
     @cached_property
     def argslots(self):
         try:
@@ -151,14 +151,14 @@ class Function(Sequence):
             ):
         badKeys = [k for k in queryKwargs if not k in self.kwargslots]
         if badKeys:
-            raise FunctionException("Inappropriate kwargs:", badKeys)
+            raise FuncyException("Inappropriate kwargs:", badKeys)
         unmatchedKwargs = [k for k in self.kwargslots if not k in queryKwargs]
         if len(queryArgs) > self.argslots and len(unmatchedKwargs):
             excessArgs = queryArgs[-(len(queryArgs) - self.argslots):]
             extraKwargs = dict(zip(self.kwargslots, excessArgs))
             excessArgs = excessArgs[len(extraKwargs):]
             if len(excessArgs):
-                raise FunctionException("Too many args:", excessArgs)
+                raise FuncyException("Too many args:", excessArgs)
             queryKwargs.update(extraKwargs)
         queryArgs = iter(queryArgs[:self.argslots])
         terms = []
@@ -232,7 +232,7 @@ class Function(Sequence):
     def operate(self, *args, **kwargs):
         return self._operate(*args, **kwargs)
     def _operate(self, *args, op = None, truthy = False, **kwargs):
-        return Operation(self, *args, op = op, **kwargs)
+        return Fn.op(op, self, *args, **kwargs)
 
     def __add__(self, other): return self._operate(other, op = 'add')
     def __sub__(self, other):return self._operate(other, op = 'sub')
@@ -269,32 +269,40 @@ class Function(Sequence):
     def __abs__(self): return self._operate(op = 'abs')
     def __invert__(self): return self._operate(op = 'inv')
 
-    # def __complex__(self): raise NullValueDetected
-    # def __int__(self): raise NullValueDetected
-    # def __float__(self): raise NullValueDetected
+    def __complex__(self): self._operate(op = 'complex')
+    def __int__(self): self._operate(op = 'int')
+    def __float__(self): self._operate(op = 'float')
     #
     # def __index__(self): raise NullValueDetected # for integrals
 
-    # def __round__(self, ndigits = 0): raise NullValueDetected
+    def __round__(self, ndigits = 0): self._operate(op = 'round')
     # def __trunc__(self): raise NullValueDetected
-    # def __floor__(self): raise NullValueDetected
-    # def __ceil__(self): raise NullValueDetected
+    def __floor__(self): self._operate(op = 'floor')
+    def __ceil__(self): self._operate(op = 'ceil')
+
+    def __lt__(self, other): self._operate(op = 'lt')
+    def __le__(self, other): self._operate(op = 'le')
+    def __eq__(self, other): self._operate(op = 'eq')
+    def __ne__(self, other): self._operate(op = 'ne')
+    def __gt__(self, other): self._operate(op = 'gt')
+    def __ge__(self, other): self._operate(op = 'ge')
 
     def __bool__(self):
         return bool(self.value)
-    def all(self):
-        return Operation(*self.terms, op = 'all')
-    def any(self):
-        return Operation(*self.terms, op = 'any')
 
     def pipe_out(self, arg):
         raise NotYetImplemented
 
     @cached_property
+    def titlestr(self):
+        return self._titlestr()
+    def _titlestr(self):
+        return type(self).__name__
+    @cached_property
     def namestr(self):
         return self._namestr()
     def _namestr(self):
-        out = type(self).__name__ + self.kwargstr
+        out = self.titlestr + self.kwargstr
         termstr = lambda t: t.namestr if hasattr(t, 'namestr') else str(t)
         if len(self.terms):
             termstr = ', '.join(termstr(t) for t in self.terms)
@@ -304,19 +312,10 @@ class Function(Sequence):
     def kwargstr(self):
         return self._kwargstr()
     def _kwargstr(self):
-        outs = []
-        for key, val in sorted(self.kwargs.items()):
-            if not type(val) is str:
-                if isinstance(val, Function):
-                    val = val.namestr
-                else:
-                    try:
-                        val = val.__name__
-                    except AttributeError:
-                        val = str(val)
-            outs.append(': '.join((key, val)))
-        return '{' + ', '.join(outs) + '}'
-
+        if not len(self.kwargs):
+            return ''
+        else:
+            return utilities.kwargstr(**self.kwargs)
     @property
     def valstr(self):
         return self._valstr()
@@ -341,17 +340,20 @@ class Function(Sequence):
     def __hash__(self):
         return self._hashInt
 
-    def op(self, arg, **kwargs):
-        return self.operate(op = arg, **kwargs)
+    def op(self, opkey, seq = True, **kwargs):
+        return self.operate(op = opkey, seq = seq, **kwargs)
 
-    def exc(self, exc = Exception, altVal = None):
-        return Trier(self, exc = exc, altVal = altVal)
+    def exc(self, altVal, exception = Exception):
+        return Trier(self, exception = exception, altVal = altVal)
 
     def reduce(self, op = 'call'):
         target = self.terms[0]
         for term in self.terms[1:]:
-            target = Fn(target, term).op(op)
+            target = Fn.op(op, target, term)
         return target
+
+    def copy(self):
+        return type(self(*self.terms, **self.kwargs))
 
 class Getter(Sequence):
     def __init__(self, host):
@@ -359,36 +361,32 @@ class Getter(Sequence):
     def __call__(self, *args):
         return Fn(self.host, *keys).reduce(getattr)
     def __getitem__(self, arg):
-        return Fn(self.host, arg).op('getitem')
+        return Fn.op('getitem', self.host, arg)
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]
     def __len__(self):
         return len(self.host.value)
 
-from ._operation import Operation, getop #, Boolean
 from ._trier import Trier
-from ._seq import Seq
-from ._variable import Variable, MutableVariable
-from ._thing import Thing
 from ._slot import Slot
-from ._fn import Fn
-from ._seq import *
+from .fn import Fn
+# from .seq import *
 
 
     # def __len__(self):
     #     return self._length
     # @cached_property
     # def _length(self):
-    #     if self.isiter:
+    #     if self.isSeq:
     #         v = 1
-    #         for t in self.iterTerms:
+    #         for t in self.seqTerms:
     #             v *= len(val)
     #         return v
     #     else:
     #         return len(self.value)
 
-        # if self.isiter:
+        # if self.isSeq:
         #     its = [
         #         [t,] if not isinstance(t, Iterable) else t
         #             for t in self.terms
@@ -397,7 +395,7 @@ from ._seq import *
         #         yield type(self)(*args, **self.kwargs)
         # else:
     # def __getitem__(self, key):
-    #     if self.isiter:
+    #     if self.isSeq:
     #         return Seq.__getitem__(self, key)
     #     else:
     #         if key >= len(self):
@@ -428,7 +426,7 @@ from ._seq import *
         #     outcls = FixedVariable
         # arg = convert(arg)
         # if not isinstance(arg, FixedVariable):
-        #     raise FunctionException(arg)
+        #     raise FuncyException(arg)
         # return outcls(self, **arg.kwargs)
     # def __rshift__(self, arg):
     #     return self.pipe_out(arg)
