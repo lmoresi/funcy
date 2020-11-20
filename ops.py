@@ -3,9 +3,7 @@ from collections import OrderedDict
 from functools import cached_property, lru_cache, wraps
 import inspect
 
-from ._operation import Operation
-
-def op_wrap(func, *keys):
+def op_wrap(func, *keys, opclass):
     @wraps(func)
     def subwrap(*args, **kwargs):
         return func(*args, **kwargs)
@@ -15,7 +13,7 @@ def op_wrap(func, *keys):
         ])
     @wraps(func)
     def wrapper(*args, **kwargs):
-        return Operation(
+        return opclass(
             *args,
             op = subwrap,
             **kwargs
@@ -23,8 +21,10 @@ def op_wrap(func, *keys):
     return wrapper
 
 class Ops:
-    __slots__ = ('source', 'keys', 'ismodule')
-    def __init__(self, source, *keys):
+    __slots__ = ('source', 'rawsource', 'keys', 'ismodule', 'opclass')
+    def __init__(self, source, *keys, opclass):
+        self.rawsource = source
+        self.opclass = opclass
         if inspect.ismodule(source):
             self.source = source
             self.ismodule = True
@@ -32,7 +32,11 @@ class Ops:
             self.source = OrderedDict()
             for k, v in source.items():
                 if isinstance(v, Mapping) or inspect.ismodule(v):
-                    self.source[k] = Ops(v, *(*keys, k))
+                    self.source[k] = Ops(
+                        v,
+                        *(*keys, k),
+                        opclass = self.opclass,
+                        )
                 elif callable(v):
                     self.source[k] = v
                 else:
@@ -43,29 +47,39 @@ class Ops:
         self.keys = keys
     @lru_cache
     def __getitem__(self, key):
-        try:
-            if self.ismodule:
-                try:
-                    obj = getattr(self.source, key)
-                except AttributeError:
+        if type(key) is tuple:
+            targ = self
+            for k in key:
+                targ = targ[k]
+            return targ
+        else:
+            try:
+                if self.ismodule:
+                    try:
+                        obj = getattr(self.source, key)
+                    except AttributeError:
+                        raise KeyError
+                else:
+                    obj = self.source[key]
+                if type(obj) is Ops:
+                    return obj
+                else:
+                    return op_wrap(
+                        obj,
+                        *self.keys,
+                        opclass = self.opclass
+                        )
+            except KeyError:
+                if self.ismodule:
                     raise KeyError
-            else:
-                obj = self.source[key]
-            if type(obj) is Ops:
-                return obj
-            else:
-                return op_wrap(obj, *self.keys)
-        except KeyError:
-            if self.ismodule:
-                raise KeyError
-            else:
-                for v in self.source.values():
-                    if type(v) is Ops:
-                        try:
-                            return v[key]
-                        except KeyError:
-                            pass
-                raise KeyError
+                else:
+                    for v in self.source.values():
+                        if type(v) is Ops:
+                            try:
+                                return v[key]
+                            except KeyError:
+                                pass
+                    raise KeyError
     def __getattr__(self, key):
         try:
             return self[key]

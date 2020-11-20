@@ -2,6 +2,6 @@
 # wordhash
 # reseed
 
-from .fn import Fn
+from ._constructor import Fn
 # from . import misc
 from .special import *

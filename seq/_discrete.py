@@ -5,9 +5,9 @@ import reseed
 
 from ..special import *
 from .exceptions import *
-from ._base import Seq, Seeded
+from ._base import _Seq, Seeded
 
-class Discrete(Seq):
+class Discrete(_Seq):
     discrete = True
     def _iter(self):
         return iter(self.prime)

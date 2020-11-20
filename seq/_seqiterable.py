@@ -21,7 +21,8 @@ class SeqIterable(Iterable):
         assert not out is None
         return out
     def __len__(self):
-        return self._length()
+        out = self._length()
+        return out if not out is None else inf
     def __iter__(self):
         return self.seq._iter()
     def __getitem__(self, arg):
@@ -39,8 +40,8 @@ class SeqIterable(Iterable):
     def _process_slice(self, slicer):
         start, stop, step = slicer.start, slicer.stop, slicer.step
         return (
-            self._process_negative(0 if start is None else start),
-            self._process_negative(len(self) if stop is None else stop),
+            0 if start is None else self._process_negative(start),
+            len(self) if stop is None else self._process_negative(stop),
             (1 if step is None else step),
             )
     @lru_cache

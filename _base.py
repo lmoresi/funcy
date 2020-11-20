@@ -9,6 +9,7 @@ from wordhash import w_hash
 import reseed
 
 from . import utilities
+from ._constructor import Fn
 from .exceptions import *
 
 def convert(arg):
@@ -25,7 +26,7 @@ def refresh_wrap(func):
         return out
     return wrapper
 
-class Function(Sequence):
+class Function:
 
     __slots__ = (
         'terms',
@@ -104,12 +105,6 @@ class Function(Sequence):
     @cached_property
     def openTerms(self):
         return [t for t in self.fnTerms if t.open]
-    @cached_property
-    def seqTerms(self):
-        return [t for t in self.fnTerms if t.isSeq]
-    @cached_property
-    def isSeq(self):
-        return bool(self.seqTerms)
     @cached_property
     def argslots(self):
         try:
@@ -204,22 +199,6 @@ class Function(Sequence):
     @cached_property
     def get(self):
         return Getter(self)
-    @lru_cache(32)
-    def __getitem__(self, arg):
-        try:
-            return self.terms[arg]
-        except TypeError:
-            try:
-                return self.terms[self.keysDict[arg]]
-            except AttributeError:
-                raise IndexError
-    def __iter__(self):
-        return iter(self.terms)
-    def __len__(self):
-        return self._length
-    @cached_property
-    def _length(self):
-        return len(self.terms)
 
     @cached_property
     def name(self):
@@ -229,63 +208,65 @@ class Function(Sequence):
             return None
 
     @lru_cache
-    def operate(self, *args, **kwargs):
-        return self._operate(*args, **kwargs)
-    def _operate(self, *args, op = None, truthy = False, **kwargs):
-        return Fn.op(op, self, *args, **kwargs)
+    def op(self, *args, op, **kwargs):
+        return self._opman(op, self, *args, **kwargs)
+    @cached_property
+    def _opman(self):
+        # from ._constructor import Fn
+        return Fn.op
 
-    def __add__(self, other): return self._operate(other, op = 'add')
-    def __sub__(self, other):return self._operate(other, op = 'sub')
-    def __mul__(self, other): return self._operate(other, op = 'mul')
-    def __matmul__(self, other): return self._operate(other, op = 'matmul')
-    def __truediv__(self, other): return self._operate(other, op = 'truediv')
-    def __floordiv__(self, other): return self._operate(other, op = 'floordiv')
-    def __mod__(self, other): return self._operate(other, op = 'mod')
-    def __divmod__(self, other): return self._operate(other, op = 'divmod')
-    def __pow__(self, other): return self._operate(other, op = 'pow')
-    # def __lshift__(self, other): return self._operate(other, op = 'lshift')
-    # def __rshift__(self, other): return self._operate(other, op = 'rshift')
-    def __and__(self, other): return self._operate(other, op = 'all')
-    # def __xor__(self, other):return self._operate(other, op = 'xor')
-    def __or__(self, other): return self._operate(other, op = 'not')
+    def __add__(self, other): return self.op(other, op = 'add')
+    def __sub__(self, other):return self.op(other, op = 'sub')
+    def __mul__(self, other): return self.op(other, op = 'mul')
+    def __matmul__(self, other): return self.op(other, op = 'matmul')
+    def __truediv__(self, other): return self.op(other, op = 'truediv')
+    def __floordiv__(self, other): return self.op(other, op = 'floordiv')
+    def __mod__(self, other): return self.op(other, op = 'mod')
+    def __divmod__(self, other): return self.op(other, op = 'divmod')
+    def __pow__(self, other): return self.op(other, op = 'pow')
+    # def __lshift__(self, other): return self.op(other, op = 'lshift')
+    # def __rshift__(self, other): return self.op(other, op = 'rshift')
+    def __and__(self, other): return self.op(other, op = 'all')
+    # def __xor__(self, other):return self.op(other, op = 'xor')
+    def __or__(self, other): return self.op(other, op = 'not')
 
-    def __radd__(self, other): return self._operate(other, op = 'add')
-    def __rsub__(self, other):return self._operate(other, op = 'sub')
-    def __rmul__(self, other): return self._operate(other, op = 'mul')
-    def __rmatmul__(self, other): return self._operate(other, op = 'matmul')
-    def __rtruediv__(self, other): return self._operate(other, op = 'truediv')
-    def __rfloordiv__(self, other): return self._operate(other, op = 'floordiv')
-    def __rmod__(self, other): return self._operate(other, op = 'mod')
-    def __rdivmod__(self, other): return self._operate(other, op = 'divmod')
-    def __rpow__(self, other): return self._operate(other, op = 'pow')
-    # def __rlshift__(self, other): return self._operate(other, op = 'lshift')
-    # def __rrshift__(self, other): return self._operate(other, op = 'rshift')
-    def __rand__(self, other): return self._operate(other, op = 'all')
-    # def __rxor__(self, other):return self._operate(other, op = 'xor')
-    def __ror__(self, other): return self._operate(other, op = 'any')
+    def __radd__(self, other): return self.op(other, op = 'add')
+    def __rsub__(self, other):return self.op(other, op = 'sub')
+    def __rmul__(self, other): return self.op(other, op = 'mul')
+    def __rmatmul__(self, other): return self.op(other, op = 'matmul')
+    def __rtruediv__(self, other): return self.op(other, op = 'truediv')
+    def __rfloordiv__(self, other): return self.op(other, op = 'floordiv')
+    def __rmod__(self, other): return self.op(other, op = 'mod')
+    def __rdivmod__(self, other): return self.op(other, op = 'divmod')
+    def __rpow__(self, other): return self.op(other, op = 'pow')
+    # def __rlshift__(self, other): return self.op(other, op = 'lshift')
+    # def __rrshift__(self, other): return self.op(other, op = 'rshift')
+    def __rand__(self, other): return self.op(other, op = 'all')
+    # def __rxor__(self, other):return self.op(other, op = 'xor')
+    def __ror__(self, other): return self.op(other, op = 'any')
 
-    def __neg__(self): return self._operate(op = 'neg')
-    def __pos__(self): return self._operate(op = 'pos')
-    def __abs__(self): return self._operate(op = 'abs')
-    def __invert__(self): return self._operate(op = 'inv')
+    def __neg__(self): return self.op(op = 'neg')
+    def __pos__(self): return self.op(op = 'pos')
+    def __abs__(self): return self.op(op = 'abs')
+    def __invert__(self): return self.op(op = 'inv')
 
-    def __complex__(self): self._operate(op = 'complex')
-    def __int__(self): self._operate(op = 'int')
-    def __float__(self): self._operate(op = 'float')
+    def __complex__(self): self.op(op = 'complex')
+    def __int__(self): self.op(op = 'int')
+    def __float__(self): self.op(op = 'float')
     #
     # def __index__(self): raise NullValueDetected # for integrals
 
-    def __round__(self, ndigits = 0): self._operate(op = 'round')
+    def __round__(self, ndigits = 0): self.op(op = 'round')
     # def __trunc__(self): raise NullValueDetected
-    def __floor__(self): self._operate(op = 'floor')
-    def __ceil__(self): self._operate(op = 'ceil')
+    def __floor__(self): self.op(op = 'floor')
+    def __ceil__(self): self.op(op = 'ceil')
 
-    def __lt__(self, other): self._operate(op = 'lt')
-    def __le__(self, other): self._operate(op = 'le')
-    def __eq__(self, other): self._operate(op = 'eq')
-    def __ne__(self, other): self._operate(op = 'ne')
-    def __gt__(self, other): self._operate(op = 'gt')
-    def __ge__(self, other): self._operate(op = 'ge')
+    def __lt__(self, other): self.op(op = 'lt')
+    def __le__(self, other): self.op(op = 'le')
+    def __eq__(self, other): self.op(op = 'eq')
+    def __ne__(self, other): self.op(op = 'ne')
+    def __gt__(self, other): self.op(op = 'gt')
+    def __ge__(self, other): self.op(op = 'ge')
 
     def __bool__(self):
         return bool(self.value)
@@ -340,9 +321,6 @@ class Function(Sequence):
     def __hash__(self):
         return self._hashInt
 
-    def op(self, opkey, seq = True, **kwargs):
-        return self.operate(op = opkey, seq = seq, **kwargs)
-
     def exc(self, altVal, exception = Exception):
         return Trier(self, exception = exception, altVal = altVal)
 
@@ -370,7 +348,7 @@ class Getter(Sequence):
 
 from ._trier import Trier
 from ._slot import Slot
-from .fn import Fn
+from ._constructor import Fn
 # from .seq import *
 
 
