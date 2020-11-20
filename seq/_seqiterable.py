@@ -21,8 +21,10 @@ class SeqIterable(Iterable):
         assert not out is None
         return out
     def __len__(self):
-        out = self._length()
-        return out if not out is None else inf
+        try:
+            return self._length()
+        except NullValueDetected:
+            return inf
     def __iter__(self):
         return self.seq._iter()
     def __getitem__(self, arg):

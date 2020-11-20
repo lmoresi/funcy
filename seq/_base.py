@@ -1,15 +1,19 @@
 from functools import cached_property
+from collections.abc import Iterable
 
 import reseed
 
 from .._base import Function
+from ..special import *
 from ._seqiterable import SeqIterable
 from .exceptions import *
 
-class _Seq(Function):
+class _Seq(Function, Iterable):
 
     discrete = False
 
+    def __iter__(self):
+        return iter(self.seqIterable)
     @cached_property
     def seqIterable(self):
         return SeqIterable(self)
@@ -24,7 +28,7 @@ class _Seq(Function):
     def _iter(self):
         raise MissingAsset
     def _seqLength(self):
-        return None
+        return inf
 
     @cached_property
     def _opman(self):

@@ -1,10 +1,11 @@
 from functools import cached_property, lru_cache
-import itertools
+from itertools import product
 
 from .._operation import Operation
 from ._base import _Seq
+from .sequtils import seqlength
 
-class SeqOperation(Operation, _Seq):
+class SeqOperation(_Seq, Operation):
 
     def _iter(self):
         return (self._op_compute(*args) for args in self._iterProd())

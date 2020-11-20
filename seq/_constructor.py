@@ -38,7 +38,9 @@ class SeqConstructor:
             )
     def __call__(self, arg, **kwargs):
         if isinstance(arg, self.base):
-            raise TypeError(arg, type(arg))
+            if kwargs:
+                raise ValueError("Cannot specify kwargs when type is _Seq.")
+            return arg
         elif type(arg) is slice:
             start, stop, step = arg.start, arg.stop, arg.step
             step = 1 if step is None else step
@@ -51,8 +53,6 @@ class SeqConstructor:
                 return self.continuum(start, stop, step, **kwargs)
         elif isinstance(arg, Sequence):
             return self.discrete(arg, **kwargs)
-        elif isinstance(arg, Iterable):
-            return self.seq(arg, **kwargs)
         else:
-            return self.discrete((arg,) **kwargs)
+            return self.seq(arg, **kwargs)
 seq = SeqConstructor()
