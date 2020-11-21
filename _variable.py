@@ -82,7 +82,6 @@ class Variable(Function):
         except NullValueDetected:
             return True
 
-    @lru_cache(1)
     def evaluate(self):
         return self.data
     def out(self):

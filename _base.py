@@ -50,33 +50,25 @@ class Function:
         self.terms = terms
         self.kwargs = kwargs
         self.downstream = weakref.WeakSet()
-        if len(terms):
-            self.prime = self.terms[0]
-            for term in self.fnTerms:
-                term.downstream.add(self)
+        # if len(terms):
+        #     self.prime = self.terms[0]
+        #     for term in self.fnTerms:
+        #         term.downstream.add(self)
         if len(keys):
             self.keysDict = keys
 
-    @lru_cache(1)
     def evaluate(self):
-        try:
-            return self._evaluate()
-        except Exception as e:
-            if self.open:
-                raise EvaluationError("Cannot evaluate open function.")
-            # elif self.isSeq:
-            #     raise EvaluationError("Cannot evaluate iterable.")
-            else:
-                raise e
-    def _evaluate(self):
         raise MissingAsset
-    # def _evaluate(self):
+    # def evaluate(self):
     #     return iter(self)
     def refresh(self):
-        self.evaluate.cache_clear()
+        try:
+            del self.value
+        except AttributeError: # we assume it has been overridden:
+            pass
         for down in self.downstream:
             down.refresh()
-    @property
+    @cached_property
     def value(self):
         return self.evaluate()
     def _resolve_terms(self):
@@ -88,7 +80,7 @@ class Function:
         argslots = 0
         kwargslots = []
         for term in self.openTerms:
-            if type(term) is Slot:
+            if type(term) is Fn.slot:
                 if term.argslots:
                     argslots += 1
                 elif not term.name in kwargslots:
@@ -135,7 +127,7 @@ class Function:
             target = target.close(arg)
         assert not target.open
         return target
-    @lru_cache()
+    # @lru_cache()
     def close(self, *queryArgs, **queryKwargs):
         if not self.open:
             raise NothingToClose
@@ -158,8 +150,8 @@ class Function:
         queryArgs = iter(queryArgs[:self.argslots])
         terms = []
         changes = 0
-        for t in self.fnTerms:
-            if type(t) is Slot:
+        for t in self.terms:
+            if type(t) is Fn.slot:
                 if t.argslots:
                     try:
                         t = next(queryArgs)
@@ -170,7 +162,7 @@ class Function:
                     if t.name in queryKwargs:
                         t = queryKwargs[t.name]
                         changes += 1
-            else:
+            elif isinstance(t, Fn.base):
                 if t.open:
                     queryArgs = list(queryArgs)
                     subArgs = queryArgs[:t.argslots]
@@ -190,11 +182,18 @@ class Function:
             outObj = type(self)(*terms, **self.kwargs)
         else:
             outObj = self
-        return outObj
+        if outObj.fnTerms:
+            return outObj
+        else:
+            return outObj.value
     def __call__(self, *args, **kwargs):
         if len(args) or len(kwargs):
-            self = self.close(*args, **kwargs)
-        return self.evaluate()
+            out = self.close(*args, **kwargs)
+            if isinstance(out, Fn.base):
+                out = out.value
+        else:
+            out = self.evaluate()
+        return out
 
     @cached_property
     def get(self):
@@ -207,7 +206,6 @@ class Function:
         except KeyError:
             return None
 
-    @lru_cache
     def op(self, *args, op, **kwargs):
         return self._opman(op, self, *args, **kwargs)
     @cached_property
@@ -226,9 +224,9 @@ class Function:
     def __pow__(self, other): return self.op(other, op = 'pow')
     # def __lshift__(self, other): return self.op(other, op = 'lshift')
     # def __rshift__(self, other): return self.op(other, op = 'rshift')
-    def __and__(self, other): return self.op(other, op = 'all')
-    # def __xor__(self, other):return self.op(other, op = 'xor')
-    def __or__(self, other): return self.op(other, op = 'not')
+    def __and__(self, other): return self.op(other, op = 'amp')
+    def __xor__(self, other):return self.op(other, op = 'hat')
+    def __or__(self, other): return self.op(other, op = 'bar')
 
     def __radd__(self, other): return self.op(other, op = 'add')
     def __rsub__(self, other):return self.op(other, op = 'sub')
@@ -241,9 +239,9 @@ class Function:
     def __rpow__(self, other): return self.op(other, op = 'pow')
     # def __rlshift__(self, other): return self.op(other, op = 'lshift')
     # def __rrshift__(self, other): return self.op(other, op = 'rshift')
-    def __rand__(self, other): return self.op(other, op = 'all')
-    # def __rxor__(self, other):return self.op(other, op = 'xor')
-    def __ror__(self, other): return self.op(other, op = 'any')
+    def __rand__(self, other): return self.op(other, op = 'amp')
+    def __rxor__(self, other):return self.op(other, op = 'hat')
+    def __ror__(self, other): return self.op(other, op = 'bar')
 
     def __neg__(self): return self.op(op = 'neg')
     def __pos__(self): return self.op(op = 'pos')
@@ -256,17 +254,17 @@ class Function:
     #
     # def __index__(self): raise NullValueDetected # for integrals
 
-    def __round__(self, ndigits = 0): self.op(op = 'round')
+    def __round__(self, ndigits = 0): self.op(ndigits, op = 'round')
     # def __trunc__(self): raise NullValueDetected
-    def __floor__(self): self.op(op = 'floor')
-    def __ceil__(self): self.op(op = 'ceil')
+    def __floor__(self): return self.op(op = 'floor')
+    def __ceil__(self): return self.op(op = 'ceil')
 
-    def __lt__(self, other): self.op(op = 'lt')
-    def __le__(self, other): self.op(op = 'le')
-    def __eq__(self, other): self.op(op = 'eq')
-    def __ne__(self, other): self.op(op = 'ne')
-    def __gt__(self, other): self.op(op = 'gt')
-    def __ge__(self, other): self.op(op = 'ge')
+    def __lt__(self, other): return self.op(other, op = 'lt')
+    def __le__(self, other): return self.op(other, op = 'le')
+    def __eq__(self, other): return self.op(other, op = 'eq')
+    def __ne__(self, other): return self.op(other, op = 'ne')
+    def __gt__(self, other): return self.op(other, op = 'gt')
+    def __ge__(self, other): return self.op(other, op = 'ge')
 
     def __bool__(self):
         return bool(self.value)
@@ -321,9 +319,6 @@ class Function:
     def __hash__(self):
         return self._hashInt
 
-    def exc(self, altVal, exception = Exception):
-        return Trier(self, exception = exception, altVal = altVal)
-
     def reduce(self, op = 'call'):
         target = self.terms[0]
         for term in self.terms[1:]:
@@ -346,8 +341,6 @@ class Getter(Sequence):
     def __len__(self):
         return len(self.host.value)
 
-from ._trier import Trier
-from ._slot import Slot
 from ._constructor import Fn
 # from .seq import *
 

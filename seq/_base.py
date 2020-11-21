@@ -18,7 +18,7 @@ class _Seq(Function, Iterable):
     def seqIterable(self):
         return SeqIterable(self)
 
-    def _evaluate(self):
+    def evaluate(self):
         return self.seqIterable
     def refresh(self):
         super().refresh()
@@ -46,7 +46,7 @@ class UnSeq(Function):
         if not seq.isSeq:
             raise TypeError("Cannot unseq non-seq.")
         super().__init__(seq)
-    def _evaluate(self):
+    def evaluate(self):
         return self.prime.value
     def seqTerms(self):
         return []

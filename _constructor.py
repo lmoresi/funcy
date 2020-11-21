@@ -6,34 +6,9 @@ from .exceptions import *
 class _Fn:
     @cached_property
     def op(self):
-        from .ops import Ops
+        from .ops import makeops
         from ._operation import Operation
-        import math
-        import builtins
-        import operator
-        import itertools
-        import numpy
-        import scipy
-        import sklearn
-        return Ops(
-            OrderedDict(
-                _basic = dict(
-                    getitem = lambda x, y: x[y],
-                    call = lambda x, y: x(y),
-                    all = lambda a: all(a),
-                    any = lambda a: any(a),
-                    inv = lambda a: not a,
-                    ),
-                _builtins = builtins,
-                _operator = operator,
-                _math = math,
-                _itertools = itertools,
-                np = numpy,
-                sp = scipy,
-                sk = sklearn,
-                ),
-            opclass = Operation,
-            )
+        return makeops(opclass = Operation)
     @cached_property
     def base(self):
         from ._base import Function

@@ -17,7 +17,7 @@ class Trier(Function):
                 raise TypeError
         self.tryFunc, self.exc, self.altVal = tryFunc, exception, altVal
         super().__init__(tryFunc, exception = exception, altVal = altVal)
-    def _evaluate(self):
+    def evaluate(self):
         try:
             return self.tryFunc.value
         except self.exception:

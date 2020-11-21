@@ -22,7 +22,7 @@ class Operation(Function):
         self.opfn = op
         super().__init__(*terms, op = op, **kwargs)
 
-    def _evaluate(self):
+    def evaluate(self):
         return self._op_compute(*self.terms)
     def _op_compute(self, *args):
         return self.opfn(

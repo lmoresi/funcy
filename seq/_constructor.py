@@ -29,13 +29,9 @@ class SeqConstructor:
         return Random
     @cached_property
     def op(self):
-        from ..ops import Ops
-        from .._constructor import Fn
+        from ..ops import makeops
         from ._seqoperation import SeqOperation
-        return Ops(
-            Fn.op.rawsource,
-            opclass = SeqOperation,
-            )
+        return makeops(opclass = SeqOperation)
     def __call__(self, arg, **kwargs):
         if isinstance(arg, self.base):
             if kwargs:

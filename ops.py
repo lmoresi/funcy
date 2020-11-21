@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from collections import OrderedDict
-from functools import cached_property, lru_cache, wraps
+from functools import cached_property, lru_cache, wraps, partial
 import inspect
 
 def op_wrap(func, *keys, opclass):
@@ -45,7 +45,6 @@ class Ops:
         else:
             raise TypeError(source, type(source))
         self.keys = keys
-    @lru_cache
     def __getitem__(self, key):
         if type(key) is tuple:
             targ = self
@@ -88,3 +87,42 @@ class Ops:
 
     def __call__(self, key, *args, **kwargs):
         return self[key](*args, **kwargs)
+
+def getitem(x, y):
+    return x[y]
+def call(x, y):
+    return x(y)
+def amp(x, y):
+    return x and y
+def bar(x, y):
+    return x or y
+def hat(x, y):
+    return (x or y) and not (x and y)
+
+
+import math
+import builtins
+import operator
+import itertools
+import numpy
+import scipy
+import sklearn
+makeops = partial(
+    Ops,
+    OrderedDict(
+        _basic = dict(
+            getitem = getitem,
+            call = call,
+            amp = amp,
+            bar = bar,
+            hat = hat,
+            ),
+        _builtins = builtins,
+        _operator = operator,
+        _math = math,
+        _itertools = itertools,
+        np = numpy,
+        sp = scipy,
+        sk = sklearn,
+        ),
+    )

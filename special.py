@@ -76,8 +76,8 @@ class InfinInt(int):
 
     def __lt__(self, other): return not self._posArg
     def __le__(self, other): return not self._posArg
-    def __eq__(self, other): False
-    def __ne__(self, other): True
+    def __eq__(self, other): return False
+    def __ne__(self, other): return True
     def __gt__(self, other): return self._posArg
     def __ge__(self, other): return self._posArg
 

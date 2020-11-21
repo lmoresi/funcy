@@ -7,7 +7,7 @@ class Group(Function, Sequence):
 
     def _operate(self, *args, op = None, truthy = False, **kwargs):
         return Operation(self, *args, op = op, **kwargs)
-    def _evaluate(self):
+    def evaluate(self):
         return iter(self)
 
     @lru_cache(32)
