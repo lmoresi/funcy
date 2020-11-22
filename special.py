@@ -74,11 +74,25 @@ class InfinInt(int):
 
     def __coerce__ (self): raise InfiniteValueDetected
 
+    def compare_infinities(func):
+        @wraps(func)
+        def wrapper(self, other):
+            if type(other) is InfinInt:
+                return False
+            else:
+                return func(self, other)
+        return wrapper
+    @compare_infinities
     def __lt__(self, other): return not self._posArg
+    @compare_infinities
     def __le__(self, other): return not self._posArg
+    @compare_infinities
     def __eq__(self, other): return False
+    @compare_infinities
     def __ne__(self, other): return True
+    @compare_infinities
     def __gt__(self, other): return self._posArg
+    @compare_infinities
     def __ge__(self, other): return self._posArg
 
     def __bool__(self):

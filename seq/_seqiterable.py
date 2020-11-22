@@ -22,9 +22,12 @@ class SeqIterable(Iterable):
         return out
     def __len__(self):
         try:
-            return self._length()
+            out = self._length()
         except NullValueDetected:
-            return inf
+            out = inf
+        if isinstance(out, InfinInt):
+            raise OverflowError
+        return out
     def __iter__(self):
         return self.seq._iter()
     def __getitem__(self, arg):
@@ -76,15 +79,16 @@ class SeqIterable(Iterable):
         return self._str
     @cached_property
     def _str(self):
-        if len(self) < 10:
-            content = ', '.join(str(v) for v in self)
-        else:
-            head = ', '.join(str(v) for v in self[:3])
-            if len(self) < inf:
+        try:
+            if len(self) < 10:
+                content = ', '.join(str(v) for v in self)
+            else:
+                head = ', '.join(str(v) for v in self[:3])
                 tail = ', '.join(str(v) for v in self[-3:])
                 content = f'{head}, ... {tail}'
-            else:
-                content = f'{head}, ... inf'
+        except OverflowError:
+            head = ', '.join(str(v) for v in self[:3])
+            content = f'{head}, ... inf'
         return f'[{content}]'
     def __repr__(self):
         return self._repr

@@ -5,6 +5,9 @@ from ._group import Group
 
 class Map(Function, Mapping):
     _groupClass = Group
+    @classmethod
+    def kw(cls, **kwargs):
+        return cls(kwargs.keys(), kwargs.values())
     def __init__(self,
             keys,
             values,

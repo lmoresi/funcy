@@ -35,6 +35,9 @@ class _Seq(Function, Iterable):
     def _iter(self):
         raise MissingAsset
 
+    @property
+    def seqLength(self):
+        return self._seqLength()
     def _seqLength(self):
         if self.seqTerms:
             v = 1
@@ -74,6 +77,6 @@ class UnSeq(Function):
 class Seeded(_Seq):
     @cached_property
     def _startseed(self):
-        return reseed.digits(12, self.terms[2])
+        return reseed.digits(12, seed = self._value_resolve(self.terms[-1]))
 
 from ._constructor import seq

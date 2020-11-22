@@ -9,7 +9,9 @@ class Continuous(_Seq):
         return inf
 
 class Continuum(Continuous, Seeded):
-    def __init__(self, start, stop, step = None, **kwargs):
+    def __init__(self, start = 0., stop = 1., step = None, **kwargs):
+        start = 0. if start is None else start
+        stop = 1. if stop is None else stop
         super().__init__(start, stop, step, **kwargs)
     def _iter(self):
         start, stop, _ = self._resolve_terms()
@@ -20,3 +22,5 @@ class Continuum(Continuous, Seeded):
                 v = process_scalar(v)
             yield v
             seed += 1
+    def _seqLength(self):
+        return inf

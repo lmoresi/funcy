@@ -14,21 +14,25 @@ class Discrete(_Seq):
     def _seqLength(self):
         return len(self.prime)
 
-class Periodic(Discrete):
-    def __init__(self, start, stop, step = None, **kwargs):
+class Regular(Discrete):
+    def __init__(self, start = 0, stop = 1, step = 1, **kwargs):
+        start = 0 if start is None else start
+        stop = 1 if stop is None else stop
         step = 1 if step is None else step
         super().__init__(start, stop, step, **kwargs)
-    def _seqLength(self):
-        start, stop, step = self._resolve_terms()
-        return int((stop - start) / step) + 1
     def _iter(self):
         start, stop, step = self._resolve_terms()
         for i in range(self._seqLength()):
             yield min(start + i * step, stop)
+    def _seqLength(self):
+        start, stop, step = self._resolve_terms()
+        return int((stop - start) / step) + 1
 
-class Random(Seeded, Discrete):
-    def __init__(self, low, high, **kwargs):
-        super().__init__(low, high, **kwargs)
+class Shuffle(Seeded, Discrete):
+    def __init__(self, start = 0, stop = 1, seed = None, **kwargs):
+        start = 0 if start is None else start
+        stop = 1 if stop is None else stop
+        super().__init__(start, stop, seed, **kwargs)
     def _seqLength(self):
         return len(self._get_iterItems())
     def _iter(self):
@@ -40,5 +44,5 @@ class Random(Seeded, Discrete):
                 )
             seed += 1
     def _get_iterItems(self):
-        low, high = self._resolve_terms()
-        return list(range(low, high + 1))
+        start, stop, _ = self._resolve_terms()
+        return list(range(start, stop))

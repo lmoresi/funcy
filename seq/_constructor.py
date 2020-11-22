@@ -1,6 +1,6 @@
 from functools import cached_property
 import numbers
-from collections.abc import Sequence
+from collections.abc import Sequence, Iterable
 
 class SeqConstructor:
     @cached_property
@@ -20,13 +20,13 @@ class SeqConstructor:
         from ._discrete import Discrete
         return Discrete
     @cached_property
-    def periodic(self):
-        from ._discrete import Periodic
-        return Periodic
+    def regular(self):
+        from ._discrete import Regular
+        return Regular
     @cached_property
-    def random(self):
-        from ._discrete import Random
-        return Random
+    def shuffle(self):
+        from ._discrete import Shuffle
+        return Shuffle
     @cached_property
     def op(self):
         from ..ops import makeops
@@ -45,18 +45,20 @@ class SeqConstructor:
             if kwargs:
                 raise ValueError("Cannot specify kwargs when type is _Seq.")
             return arg
+        elif type(arg) is tuple:
+            return self.group(*arg)
         elif type(arg) is slice:
             start, stop, step = arg.start, arg.stop, arg.step
-            step = 1 if step is None else step
-            if all(isinstance(a, numbers.Integral) for a in (start, stop)):
-                if isinstance(step, numbers.Number) or step is None:
-                    return self.periodic(start, stop, step, **kwargs)
-                else:
-                    return self.random(start, stop, step, **kwargs)
+            if isinstance(step, numbers.Number):
+                return self.regular(start, stop, step, **kwargs)
+            elif any(isinstance(a, numbers.Integral) for a in (start, stop)):
+                return self.shuffle(start, stop, step, **kwargs)
             else:
                 return self.continuum(start, stop, step, **kwargs)
         elif isinstance(arg, Sequence):
             return self.discrete(arg, **kwargs)
-        else:
+        elif isinstance(arg, Iterable):
             return self.seq(arg, **kwargs)
+        else:
+            raise TypeError
 seq = SeqConstructor()
