@@ -42,6 +42,10 @@ class _Fn:
         from ._thing import Thing
         return Thing
     @cached_property
+    def map(self):
+        from ._map import Map
+        return Map
+    @cached_property
     def inf(self):
         from .special import inf
         return inf

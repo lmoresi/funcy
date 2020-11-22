@@ -27,7 +27,23 @@ class Slot(Function):
             raise Exception
         # raise FuncyException("Cannot close a Slot function.")
     def evaluate(self):
-        return null
+        try:
+            return self.tempVal
+        except AttributeError:
+            return null
     @property
     def value(self):
-        return null
+        return self.evaluate()
+
+    # def evaluate(self):
+    #     key = self.name
+    #     try:
+    #         try:
+    #             if key is None:
+    #                 return GLOBEKWARGS[key].pop()
+    #             else:
+    #                 return GLOBEKWARGS[key]
+    #         except KeyError:
+    #             return GLOBEKWARGS.setdefault(key, GLOBEKWARGS[None].pop())
+    #     except IndexError:
+    #         return null

@@ -1,11 +1,13 @@
 from functools import cached_property
 from collections.abc import Iterable
+from itertools import product
 
 import reseed
 
 from .._base import Function
 from ..special import *
 from ._seqiterable import SeqIterable
+from .sequtils import seqlength
 from .exceptions import *
 
 class _Seq(Function, Iterable):
@@ -14,6 +16,11 @@ class _Seq(Function, Iterable):
 
     def __iter__(self):
         return iter(self.seqIterable)
+    def _iterTerms(self):
+        return product(*(
+            (t,) if not isinstance(t, Iterable) else t
+                for t in self._resolve_terms()
+            ))
     @cached_property
     def seqIterable(self):
         return SeqIterable(self)
@@ -27,8 +34,18 @@ class _Seq(Function, Iterable):
 
     def _iter(self):
         raise MissingAsset
+
     def _seqLength(self):
-        return inf
+        if self.seqTerms:
+            v = 1
+            for t in self.seqTerms:
+                v *= seqlength(t)
+            return v
+        else:
+            return inf
+    @cached_property
+    def seqTerms(self):
+        return [t for t in self.fnTerms if isinstance(t, _Seq)]
 
     @cached_property
     def _opman(self):

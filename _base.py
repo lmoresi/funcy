@@ -46,21 +46,17 @@ class Function:
             val = val.evaluate()
         return val
 
-    def __init__(self, *terms, keys = dict(), **kwargs):
+    def __init__(self, *terms, **kwargs):
         self.terms = terms
         self.kwargs = kwargs
         self.downstream = weakref.WeakSet()
-        # if len(terms):
-        #     self.prime = self.terms[0]
-        #     for term in self.fnTerms:
-        #         term.downstream.add(self)
-        if len(keys):
-            self.keysDict = keys
+        if len(terms):
+            self.prime = self.terms[0]
+            for term in self.fnTerms:
+                term.downstream.add(self)
 
     def evaluate(self):
         raise MissingAsset
-    # def evaluate(self):
-    #     return iter(self)
     def refresh(self):
         try:
             del self.value
@@ -73,6 +69,11 @@ class Function:
         return self.evaluate()
     def _resolve_terms(self):
         return (self._value_resolve(t) for t in self.terms)
+    def __call__(self, *args, **kwargs):
+        if args or kwargs:
+            return self.close(*args, **kwargs).evaluate()
+        else:
+            return self.evaluate()
 
     def _add_slots(self):
         self._argslots, self._kwargslots, self._slots = self._count_slots()
@@ -118,6 +119,23 @@ class Function:
         except AttributeError:
             self._add_slots()
             return self._slots
+    @cached_property
+    def slotVars(self):
+        argVars, kwargVars = list(), OrderedDict()
+        for term in self.fnTerms:
+            if isinstance(term, Fn.slot):
+                if term.argslots:
+                    argVars.append(term)
+                else:
+                    kwargList = kwargVars.setdefault(term.name, [])
+                    kwargList.append(term)
+            elif term.open:
+                subArgVars, subKwargVars = term.slotVars
+                argVars.extend(subArgVars)
+                for k, v in subKwargVars.items():
+                    kwargList = kwargVars.setdefault(k, [])
+                    kwargList.extend(v)
+        return argVars, kwargVars
     @cached_property
     def open(self):
         return bool(self.slots)
@@ -186,18 +204,6 @@ class Function:
             return outObj
         else:
             return outObj.value
-    def __call__(self, *args, **kwargs):
-        if len(args) or len(kwargs):
-            out = self.close(*args, **kwargs)
-            if isinstance(out, Fn.base):
-                out = out.value
-        else:
-            out = self.evaluate()
-        return out
-
-    @cached_property
-    def get(self):
-        return Getter(self)
 
     @cached_property
     def name(self):
@@ -206,8 +212,11 @@ class Function:
         except KeyError:
             return None
 
-    def op(self, *args, op, **kwargs):
-        return self._opman(op, self, *args, **kwargs)
+    def op(self, *args, op, rev = False, **kwargs):
+        if rev:
+            return self._opman(op, *(*args, self), **kwargs)
+        else:
+            return self._opman(op, self, *args, **kwargs)
     @cached_property
     def _opman(self):
         # from ._constructor import Fn
@@ -228,20 +237,20 @@ class Function:
     def __xor__(self, other):return self.op(other, op = 'hat')
     def __or__(self, other): return self.op(other, op = 'bar')
 
-    def __radd__(self, other): return self.op(other, op = 'add')
-    def __rsub__(self, other):return self.op(other, op = 'sub')
-    def __rmul__(self, other): return self.op(other, op = 'mul')
-    def __rmatmul__(self, other): return self.op(other, op = 'matmul')
-    def __rtruediv__(self, other): return self.op(other, op = 'truediv')
-    def __rfloordiv__(self, other): return self.op(other, op = 'floordiv')
-    def __rmod__(self, other): return self.op(other, op = 'mod')
-    def __rdivmod__(self, other): return self.op(other, op = 'divmod')
-    def __rpow__(self, other): return self.op(other, op = 'pow')
-    # def __rlshift__(self, other): return self.op(other, op = 'lshift')
-    # def __rrshift__(self, other): return self.op(other, op = 'rshift')
-    def __rand__(self, other): return self.op(other, op = 'amp')
-    def __rxor__(self, other):return self.op(other, op = 'hat')
-    def __ror__(self, other): return self.op(other, op = 'bar')
+    def __radd__(self, other): return self.op(other, op = 'add', rev = True)
+    def __rsub__(self, other):return self.op(other, op = 'sub', rev = True)
+    def __rmul__(self, other): return self.op(other, op = 'mul', rev = True)
+    def __rmatmul__(self, other): return self.op(other, op = 'matmul', rev = True)
+    def __rtruediv__(self, other): return self.op(other, op = 'truediv', rev = True)
+    def __rfloordiv__(self, other): return self.op(other, op = 'floordiv', rev = True)
+    def __rmod__(self, other): return self.op(other, op = 'mod', rev = True)
+    def __rdivmod__(self, other): return self.op(other, op = 'divmod', rev = True)
+    def __rpow__(self, other): return self.op(other, op = 'pow', rev = True)
+    def __rlshift__(self, other): return self.op(other, op = 'lshift', rev = True)
+    def __rrshift__(self, other): return self.op(other, op = 'rshift', rev = True)
+    def __rand__(self, other): return self.op(other, op = 'amp', rev = True)
+    def __rxor__(self, other):return self.op(other, op = 'hat', rev = True)
+    def __ror__(self, other): return self.op(other, op = 'bar', rev = True)
 
     def __neg__(self): return self.op(op = 'neg')
     def __pos__(self): return self.op(op = 'pos')
@@ -327,19 +336,6 @@ class Function:
 
     def copy(self):
         return type(self(*self.terms, **self.kwargs))
-
-class Getter(Sequence):
-    def __init__(self, host):
-        self.host = host
-    def __call__(self, *args):
-        return Fn(self.host, *keys).reduce(getattr)
-    def __getitem__(self, arg):
-        return Fn.op('getitem', self.host, arg)
-    def __iter__(self):
-        for i in range(len(self)):
-            yield self[i]
-    def __len__(self):
-        return len(self.host.value)
 
 from ._constructor import Fn
 # from .seq import *

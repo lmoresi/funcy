@@ -32,6 +32,14 @@ class SeqConstructor:
         from ..ops import makeops
         from ._seqoperation import SeqOperation
         return makeops(opclass = SeqOperation)
+    @cached_property
+    def group(self):
+        from ._seqgroup import SeqGroup
+        return SeqGroup
+    @cached_property
+    def map(self):
+        from ._seqmap import SeqMap
+        return SeqMap
     def __call__(self, arg, **kwargs):
         if isinstance(arg, self.base):
             if kwargs:
