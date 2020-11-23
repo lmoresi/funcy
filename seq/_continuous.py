@@ -2,9 +2,9 @@ import reseed
 
 from ..utilities import process_scalar
 from ..special import *
-from ._base import _Seq, Seeded
+from ._base import Seq, Seeded
 
-class Continuous(_Seq):
+class Continuous(Seq):
     def _seqLength(self):
         return inf
 

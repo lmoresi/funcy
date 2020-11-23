@@ -4,21 +4,20 @@ from itertools import product
 
 import reseed
 
+from .. import Fn
 from .._base import Function
 from ..special import *
 from ._seqiterable import SeqIterable
 from .sequtils import seqlength
 from .exceptions import *
 
-class _Seq(Function, Iterable):
+class Seq(Function, Iterable):
 
     discrete = False
 
-    def __iter__(self):
-        return iter(self.seqIterable)
     def _iterTerms(self):
         return product(*(
-            (t,) if not isinstance(t, Iterable) else t
+            t if isinstance(t, SeqIterable) else (t,)
                 for t in self._resolve_terms()
             ))
     @cached_property
@@ -33,7 +32,10 @@ class _Seq(Function, Iterable):
         self.seqIterable._get_slice.cache_clear()
 
     def _iter(self):
-        raise MissingAsset
+        return iter(self._value_resolve(self.prime))
+
+    def __iter__(self):
+        return iter(self.value)
 
     @property
     def seqLength(self):
@@ -48,18 +50,11 @@ class _Seq(Function, Iterable):
             return inf
     @cached_property
     def seqTerms(self):
-        return [t for t in self.fnTerms if isinstance(t, _Seq)]
+        return [t for t in self.fnTerms if isinstance(t, Seq)]
 
     @cached_property
     def _opman(self):
-        from ._constructor import seq
-        return seq.op
-
-class Seq(_Seq):
-    def __init__(self, iterable, **kwargs):
-        super().__init__(iterable, **kwargs)
-    def _iter(self):
-        return iter(self._value_resolve(self.prime))
+        return Fn.seqop
 
 class UnSeq(Function):
     def __init__(self, seq):
@@ -74,9 +69,25 @@ class UnSeq(Function):
     def isSeq(self):
         return False
 
-class Seeded(_Seq):
+class Seeded(Seq):
     @cached_property
     def _startseed(self):
         return reseed.digits(12, seed = self._value_resolve(self.terms[-1]))
+
+    # def __len__(self):
+    #     return len(self.value[0])
+    # def __getitem__(self, arg):
+    #     if type(arg) is slice:
+    #         return self._getslice(arg)
+    #     else:
+    #         return self.op(arg, op = 'getitem')
+    # def _getslice(self, slicer):
+    #     start, stop, step = slicer.start, slicer.stop, slicer.step
+    #     start = 0 if start is None else start
+    #     stop = len(self) if stop is None else min(len(self, stop))
+    #     step = 1 if step is None else step
+    #     return (self[i] for i in range(start, stop, step))
+    # def __iter__(self):
+    #     return (self[i] for i in range(len(self)))
 
 from ._constructor import seq

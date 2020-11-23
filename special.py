@@ -1,9 +1,19 @@
 from functools import wraps
 import numbers
+import sys
 
 from .exceptions import *
 
-class InfinInt(int):
+class Infinite(numbers.Number):
+    pass
+    def __int__(self): return sys.maxsize
+    def __float__(self): return float('inf')
+
+class InfiniteFloat(float):
+    def __init__(self):
+        super().__init__('inf')
+
+class InfiniteInteger(Infinite, numbers.Integral):
     def __init__(self, pos = True):
         self._posArg = pos
         super().__init__()
@@ -23,9 +33,9 @@ class InfinInt(int):
     def __pow__(self, other, modulo = None): return self
     def __lshift__(self, other): return self
     def __rshift__(self, other): return self
-    # def __and__(self, other): return True
-    # def __xor__(self, other): return True
-    # def __or__(self, other): raise InfiniteValueDetected
+    def __and__(self, other): return True
+    def __xor__(self, other): return True
+    def __or__(self, other): return True
 
     def __radd__(self, other): return self
     def __rsub__(self, other): return self
@@ -38,9 +48,9 @@ class InfinInt(int):
     def __rpow__(self, other, modulo = None): return self
     def __rlshift__(self, other): return self
     def __rrshift__(self, other): return self
-    # def __rand__(self, other): raise InfiniteValueDetected
-    # def __rxor__(self, other): raise InfiniteValueDetected
-    # def __ror__(self, other): raise InfiniteValueDetected
+    def __rand__(self, other): return bool(other)
+    def __rxor__(self, other): return not bool(other)
+    def __ror__(self, other): return True
 
     def __iadd__(self, other): return self
     def __isub__(self, other): return self
@@ -62,10 +72,8 @@ class InfinInt(int):
     def __invert__(self): raise NotImplemented
 
     def __complex__(self): raise NotImplemented
-    def __int__(self): return self
-    def __float__(self): return np.inf
 
-    def __index__(self): raise InfiniteValueDetected # for integrals
+    def __index__(self): return sys.maxsize # for integrals
 
     def __round__(self, ndigits = 0): raise InfiniteValueDetected
     def __trunc__(self): raise InfiniteValueDetected
@@ -77,7 +85,7 @@ class InfinInt(int):
     def compare_infinities(func):
         @wraps(func)
         def wrapper(self, other):
-            if type(other) is InfinInt:
+            if isinstance(other, Infinite):
                 return False
             else:
                 return func(self, other)
@@ -104,8 +112,8 @@ class InfinInt(int):
         else:
             return 'ninf'
 
-inf = InfinInt(True)
-ninf = InfinInt(False)
+inf = InfiniteInteger(True)
+ninf = InfiniteInteger(False)
 
 class Null(numbers.Number):
 

@@ -25,7 +25,7 @@ class SeqIterable(Iterable):
             out = self._length()
         except NullValueDetected:
             out = inf
-        if isinstance(out, InfinInt):
+        if isinstance(out, InfiniteInteger):
             raise OverflowError
         return out
     def __iter__(self):
@@ -49,7 +49,7 @@ class SeqIterable(Iterable):
             len(self) if stop is None else self._process_negative(stop),
             (1 if step is None else step),
             )
-    # @lru_cache
+    @lru_cache
     def _get_index(self, target):
         target = self._process_negative(target)
         it, i = iter(self), -1
@@ -63,7 +63,7 @@ class SeqIterable(Iterable):
                 raise IndexError
         except StopIteration:
             raise IndexError
-    # @lru_cache
+    @lru_cache
     def _get_slice(self, start, stop, step):
         return itertools.islice(self, start, stop, step)
         # it, i = iter(self), -1

@@ -270,8 +270,8 @@ class Function:
 
     def __lt__(self, other): return self.op(other, op = 'lt')
     def __le__(self, other): return self.op(other, op = 'le')
-    def __eq__(self, other): return self.op(other, op = 'eq')
-    def __ne__(self, other): return self.op(other, op = 'ne')
+    # def __eq__(self, other): return self.op(other, op = 'eq')
+    # def __ne__(self, other): return self.op(other, op = 'ne')
     def __gt__(self, other): return self.op(other, op = 'gt')
     def __ge__(self, other): return self.op(other, op = 'ge')
 

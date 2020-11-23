@@ -126,3 +126,11 @@ makeops = partial(
         sk = sklearn,
         ),
     )
+
+from ._operation import Operation
+from .seq._seqops import SeqOp
+from .seq._iterops import IterOp
+
+ops = makeops(opclass = Operation)
+seqops = makeops(opclass = SeqOp)
+iterops = makeops(opclass = IterOp)

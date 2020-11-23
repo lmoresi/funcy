@@ -6,9 +6,16 @@ from .exceptions import *
 class _Fn:
     @cached_property
     def op(self):
-        from .ops import makeops
-        from ._operation import Operation
-        return makeops(opclass = Operation)
+        from .ops import ops
+        return ops
+    @cached_property
+    def seqop(self):
+        from .ops import seqops
+        return seqops
+    @cached_property
+    def iterop(self):
+        from .ops import iterops
+        return iterops
     @cached_property
     def base(self):
         from ._base import Function
