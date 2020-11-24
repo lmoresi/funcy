@@ -5,25 +5,36 @@ import sys
 from .exceptions import *
 
 class Infinite(numbers.Number):
-    pass
-    def __int__(self): return sys.maxsize
-    def __float__(self): return float('inf')
-
-class InfiniteFloat(float):
-    def __init__(self):
-        super().__init__('inf')
-
-class InfiniteInteger(Infinite, numbers.Integral):
     def __init__(self, pos = True):
         self._posArg = pos
-        super().__init__()
+    def __int__(self): return int(InfiniteInteger(self._posArg))
+    def __float__(self): return float(InfiniteFloat(self._posArg))
+
+class InfiniteFloat(Infinite, float):
+    def __new__(cls, *args, pos = True, **kwargs):
+        val = 'inf' if pos else '-inf'
+        obj = super().__new__(cls, val)
+        return obj
+    def __float__(self): return float('inf') if self._posArg else float('-inf')
+
+class InfiniteInteger(Infinite, int):
+
+    def __new__(cls, *args, pos = True, **kwargs):
+        val = sys.maxsize if pos else -sys.maxsize + 1
+        obj = super().__new__(cls, val)
+        return obj
+    def __int__(self): return sys.maxsize if self._posArg else -sys.maxsize + 1
 
     # def __getattr__(self, key): raise InfiniteValueDetected
     # def __getitem__(self, key): raise InfiniteValueDetected
     # def __setitem__(self, key, val): raise InfiniteValueDetected
 
     def __add__(self, other): return self
-    def __sub__(self, other): return self
+    def __sub__(self, other):
+        if isinstance(other, Infinite):
+            raise ArithmeticError
+        else:
+            return self
     def __mul__(self, other): return self
     def __matmul__(self, other): return self
     def __truediv__(self, other): return self
@@ -38,7 +49,11 @@ class InfiniteInteger(Infinite, numbers.Integral):
     def __or__(self, other): return True
 
     def __radd__(self, other): return self
-    def __rsub__(self, other): return self
+    def __rsub__(self, other):
+        if isinstance(other, Infinite):
+            raise ArithmeticError
+        else:
+            return -self
     def __rmul__(self, other): return self
     def __rmatmul__(self, other): return self
     def __rtruediv__(self, other): return self
@@ -73,7 +88,7 @@ class InfiniteInteger(Infinite, numbers.Integral):
 
     def __complex__(self): raise NotImplemented
 
-    def __index__(self): return sys.maxsize # for integrals
+    # def __index__(self): return sys.maxsize # for integrals
 
     def __round__(self, ndigits = 0): raise InfiniteValueDetected
     def __trunc__(self): raise InfiniteValueDetected
