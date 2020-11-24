@@ -21,13 +21,7 @@ class SeqIterable(Iterable):
         assert not out is None
         return out
     def __len__(self):
-        try:
-            out = self._length()
-        except NullValueDetected:
-            out = inf
-        if isinstance(out, InfiniteInteger):
-            raise OverflowError
-        return out
+        return self._length()
     def __iter__(self):
         return self.seq._iter()
     def __getitem__(self, arg):
@@ -36,12 +30,10 @@ class SeqIterable(Iterable):
         else:
             return self._get_index(arg)
     def _process_negative(self, target):
-        if target < 0:
-            if len(self) < inf:
-                target = target + len(self)
-            else:
-                raise ValueError("Cannot reverse-index endless sequence.")
-        return target
+        length = len(self)
+        if isinstance(length, (Unknown, Infinite, Null)):
+            raise ValueError("Cannot reverse this sequence.")
+        return target + length
     def _process_slice(self, slicer):
         start, stop, step = slicer.start, slicer.stop, slicer.step
         return (
@@ -62,7 +54,7 @@ class SeqIterable(Iterable):
             except NameError:
                 raise IndexError
         except StopIteration:
-            raise IndexError
+            raise IndexError(target)
     @lru_cache
     def _get_slice(self, start, stop, step):
         return itertools.islice(self, start, stop, step)
@@ -79,16 +71,20 @@ class SeqIterable(Iterable):
         return self._str
     @cached_property
     def _str(self):
-        try:
-            if len(self) < 10:
+        length = len(self)
+        if isinstance(length, Infinite):
+            head = ', '.join(str(v) for v in self[:3])
+            content = f'{head}, ... inf'
+        elif isinstance(length, Unknown):
+            head = ', '.join(str(v) for v in self[:3])
+            content = f'{head}, ... unk'
+        else:
+            if length < 10:
                 content = ', '.join(str(v) for v in self)
             else:
                 head = ', '.join(str(v) for v in self[:3])
                 tail = ', '.join(str(v) for v in self[-3:])
                 content = f'{head}, ... {tail}'
-        except OverflowError:
-            head = ', '.join(str(v) for v in self[:3])
-            content = f'{head}, ... inf'
         return f'[{content}]'
     def __repr__(self):
         return self._repr

@@ -47,14 +47,16 @@ class Seq(Function, Iterable):
                 v *= seqlength(t)
             return v
         else:
-            return inf
+            return unkint
     @cached_property
     def seqTerms(self):
         return [t for t in self.fnTerms if isinstance(t, Seq)]
+    def __len__(self):
+        return self._seqLength()
 
     @cached_property
     def _opman(self):
-        return Fn.seqop
+        return Fn.elementop
 
 class UnSeq(Function):
     def __init__(self, seq):

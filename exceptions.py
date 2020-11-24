@@ -4,9 +4,13 @@ class FuncyException(Exception):
 class MissingAsset(FuncyException):
     pass
 
-class NullValueDetected(FuncyException):
+class FuncyValueError(FuncyException, ValueError):
     pass
-class InfiniteValueDetected(FuncyException):
+class NullValueDetected(FuncyValueError):
+    pass
+class InfiniteValueDetected(FuncyValueError):
+    pass
+class UnknownValueDetected(FuncyValueError):
     pass
 
 class EvaluationError(FuncyException):

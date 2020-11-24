@@ -9,13 +9,13 @@ class _Fn:
         from .ops import ops
         return ops
     @cached_property
+    def elementop(self):
+        from .ops import elementops
+        return elementops
+    @cached_property
     def seqop(self):
         from .ops import seqops
         return seqops
-    @cached_property
-    def iterop(self):
-        from .ops import iterops
-        return iterops
     @cached_property
     def base(self):
         from ._base import Function

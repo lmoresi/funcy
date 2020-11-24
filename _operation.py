@@ -38,3 +38,14 @@ class Operation(Function):
             return utilities.kwargstr(**kwargs)
         else:
             return ''
+
+class Operations:
+    @classmethod
+    def shuffled(cls, sequence, seed = None):
+        from reseed import Reseed
+        from .special import inf
+        if not len(sequence) < inf:
+            raise FuncyException("Cannot shuffle infinite sequence.")
+        sequence = [*sequence]
+        Reseed.shuffle(sequence, seed = seed)
+        return sequence

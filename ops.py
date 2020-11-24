@@ -21,17 +21,31 @@ def op_wrap(func, *keys, opclass):
     return wrapper
 
 class Ops:
-    __slots__ = ('source', 'rawsource', 'keys', 'ismodule', 'opclass')
+    __slots__ = (
+        'source',
+        'rawsource',
+        'keys',
+        'opclass',
+        '_sourceType'
+        )
     def __init__(self, source, *keys, opclass):
         self.rawsource = source
         self.opclass = opclass
         if inspect.ismodule(source):
             self.source = source
-            self.ismodule = True
+            self._sourceType = 'module'
+        elif inspect.isclass(source):
+            self.source = source
+            self._sourceType = 'class'
         elif isinstance(source, Mapping):
             self.source = OrderedDict()
+            self._sourceType = 'mapping'
             for k, v in source.items():
-                if isinstance(v, Mapping) or inspect.ismodule(v):
+                if any([
+                        isinstance(v, Mapping),
+                        inspect.ismodule(v),
+                        inspect.isclass(v)
+                        ]):
                     self.source[k] = Ops(
                         v,
                         *(*keys, k),
@@ -41,10 +55,10 @@ class Ops:
                     self.source[k] = v
                 else:
                     raise TypeError(v, type(v))
-            self.ismodule = False
         else:
             raise TypeError(source, type(source))
         self.keys = keys
+    @lru_cache
     def __getitem__(self, key):
         if type(key) is tuple:
             targ = self
@@ -53,13 +67,15 @@ class Ops:
             return targ
         else:
             try:
-                if self.ismodule:
+                if self._sourceType in {'module', 'class'}:
                     try:
                         obj = getattr(self.source, key)
                     except AttributeError:
                         raise KeyError
-                else:
+                elif self._sourceType == 'mapping':
                     obj = self.source[key]
+                else:
+                    raise ValueError("Sourcetype was:", self._sourceType)
                 if type(obj) is Ops:
                     return obj
                 else:
@@ -69,15 +85,15 @@ class Ops:
                         opclass = self.opclass
                         )
             except KeyError:
-                if self.ismodule:
-                    raise KeyError
-                else:
+                if self._sourceType == 'mapping':
                     for v in self.source.values():
                         if type(v) is Ops:
                             try:
                                 return v[key]
                             except KeyError:
                                 pass
+                    raise KeyError
+                else:
                     raise KeyError
     def __getattr__(self, key):
         try:
@@ -107,30 +123,29 @@ import itertools
 import numpy
 import scipy
 import sklearn
-makeops = partial(
-    Ops,
-    OrderedDict(
-        _basic = dict(
-            getitem = getitem,
-            call = call,
-            amp = amp,
-            bar = bar,
-            hat = hat,
-            ),
-        _builtins = builtins,
-        _operator = operator,
-        _math = math,
-        _itertools = itertools,
-        np = numpy,
-        sp = scipy,
-        sk = sklearn,
+import reseed
+universalSources = OrderedDict(
+    _basic = dict(
+        getitem = getitem,
+        call = call,
+        amp = amp,
+        bar = bar,
+        hat = hat,
         ),
+    _builtins = builtins,
+    _operator = operator,
+    _math = math,
+    _itertools = itertools,
+    rs = reseed.Reseed,
+    np = numpy,
+    sp = scipy,
+    sk = sklearn,
     )
 
-from ._operation import Operation
-from .seq._seqops import SeqOp
-from .seq._iterops import IterOp
+from ._operation import Operation, Operations
+from .seq._elementoperation import ElementOp, ElementOps
+from .seq._seqoperation import SeqOperation, SeqOperations
 
-ops = makeops(opclass = Operation)
-seqops = makeops(opclass = SeqOp)
-iterops = makeops(opclass = IterOp)
+ops = Ops({'_op': Operations, **universalSources}, opclass = Operation)
+elementops = Ops({'_op': ElementOps, **universalSources}, opclass = ElementOp)
+seqops = Ops({'_op': SeqOperations, **universalSources}, opclass = SeqOperation)

@@ -127,85 +127,160 @@ class InfiniteInteger(Infinite, int):
         else:
             return 'ninf'
 
-inf = InfiniteInteger(True)
-ninf = InfiniteInteger(False)
+class BadNumber(numbers.Number):
 
-class Null(numbers.Number):
+    _error = FuncyValueError
 
-    def __getattr__(self, key): raise NullValueDetected
-    def __getitem__(self, key): raise NullValueDetected
-    def __setitem__(self, key, val): raise NullValueDetected
+    def __getattr__(self, key): raise self._error
+    def __getitem__(self, key): raise self._error
+    def __setitem__(self, key, val): raise self._error
 
-    def __add__(self, other): raise NullValueDetected
-    def __sub__(self, other): raise NullValueDetected
-    def __mul__(self, other): raise NullValueDetected
-    def __matmul__(self, other): raise NullValueDetected
-    def __truediv__(self, other): raise NullValueDetected
-    def __floordiv__(self, other): raise NullValueDetected
-    def __mod__(self, other): raise NullValueDetected
-    def __divmod__(self, other): raise NullValueDetected
-    def __pow__(self, other, modulo = None): raise NullValueDetected
-    def __lshift__(self, other): raise NullValueDetected
-    def __rshift__(self, other): raise NullValueDetected
-    def __and__(self, other): raise NullValueDetected
-    def __xor__(self, other): raise NullValueDetected
-    def __or__(self, other): raise NullValueDetected
+    def __add__(self, other): raise self._error
+    def __sub__(self, other): raise self._error
+    def __mul__(self, other): raise self._error
+    def __matmul__(self, other): raise self._error
+    def __truediv__(self, other): raise self._error
+    def __floordiv__(self, other): raise self._error
+    def __mod__(self, other): raise self._error
+    def __divmod__(self, other): raise self._error
+    def __pow__(self, other, modulo = None): raise self._error
+    def __lshift__(self, other): raise self._error
+    def __rshift__(self, other): raise self._error
+    def __and__(self, other): raise self._error
+    def __xor__(self, other): raise self._error
+    def __or__(self, other): raise self._error
 
-    def __radd__(self, other): raise NullValueDetected
-    def __rsub__(self, other): raise NullValueDetected
-    def __rmul__(self, other): raise NullValueDetected
-    def __rmatmul__(self, other): raise NullValueDetected
-    def __rtruediv__(self, other): raise NullValueDetected
-    def __rfloordiv__(self, other): raise NullValueDetected
-    def __rmod__(self, other): raise NullValueDetected
-    def __rdivmod__(self, other): raise NullValueDetected
-    def __rpow__(self, other, modulo = None): raise NullValueDetected
-    def __rlshift__(self, other): raise NullValueDetected
-    def __rrshift__(self, other): raise NullValueDetected
-    def __rand__(self, other): raise NullValueDetected
-    def __rxor__(self, other): raise NullValueDetected
-    def __ror__(self, other): raise NullValueDetected
+    def __radd__(self, other): raise self._error
+    def __rsub__(self, other): raise self._error
+    def __rmul__(self, other): raise self._error
+    def __rmatmul__(self, other): raise self._error
+    def __rtruediv__(self, other): raise self._error
+    def __rfloordiv__(self, other): raise self._error
+    def __rmod__(self, other): raise self._error
+    def __rdivmod__(self, other): raise self._error
+    def __rpow__(self, other, modulo = None): raise self._error
+    def __rlshift__(self, other): raise self._error
+    def __rrshift__(self, other): raise self._error
+    def __rand__(self, other): raise self._error
+    def __rxor__(self, other): raise self._error
+    def __ror__(self, other): raise self._error
 
-    def __iadd__(self, other): raise NullValueDetected
-    def __isub__(self, other): raise NullValueDetected
-    def __imul__(self, other): raise NullValueDetected
-    def __imatmul__(self, other): raise NullValueDetected
-    def __itruediv__(self, other): raise NullValueDetected
-    def __ifloordiv__(self, other): raise NullValueDetected
-    def __imod__(self, other): raise NullValueDetected
-    def __ipow__(self, other, modulo = None): raise NullValueDetected
-    def __ilshift__(self, other): raise NullValueDetected
-    def __irshift__(self, other): raise NullValueDetected
-    def __iand__(self, other): raise NullValueDetected
-    def __ixor__(self, other): raise NullValueDetected
-    def __ior__(self, other): raise NullValueDetected
+    def __iadd__(self, other): raise self._error
+    def __isub__(self, other): raise self._error
+    def __imul__(self, other): raise self._error
+    def __imatmul__(self, other): raise self._error
+    def __itruediv__(self, other): raise self._error
+    def __ifloordiv__(self, other): raise self._error
+    def __imod__(self, other): raise self._error
+    def __ipow__(self, other, modulo = None): raise self._error
+    def __ilshift__(self, other): raise self._error
+    def __irshift__(self, other): raise self._error
+    def __iand__(self, other): raise self._error
+    def __ixor__(self, other): raise self._error
+    def __ior__(self, other): raise self._error
 
-    def __neg__(self): raise NullValueDetected
-    def __pos__(self): raise NullValueDetected
-    def __abs__(self): raise NullValueDetected
-    def __invert__(self): raise NullValueDetected
+    def __neg__(self): raise self._error
+    def __pos__(self): raise self._error
+    def __abs__(self): raise self._error
+    def __invert__(self): raise self._error
 
-    def __complex__(self): raise NullValueDetected
-    def __int__(self): raise NullValueDetected
-    def __float__(self): raise NullValueDetected
+    def __complex__(self): raise self._error
+    def __int__(self): raise self._error
+    def __float__(self): raise self._error
 
-    def __index__(self): raise NullValueDetected # for integrals
+    def __index__(self): raise self._error # for integrals
 
-    def __round__(self, ndigits = 0): raise NullValueDetected
-    def __trunc__(self): raise NullValueDetected
-    def __floor__(self): raise NullValueDetected
-    def __ceil__(self): raise NullValueDetected
+    def __round__(self, ndigits = 0): raise self._error
+    def __trunc__(self): raise self._error
+    def __floor__(self): raise self._error
+    def __ceil__(self): raise self._error
 
-    def __coerce__ (self): raise NullValueDetected
+    def __coerce__ (self): raise self._error
 
-    def __lt__(self, other): raise NullValueDetected
-    def __le__(self, other): raise NullValueDetected
-    def __eq__(self, other): raise NullValueDetected
-    def __ne__(self, other): raise NullValueDetected
-    def __gt__(self, other): raise NullValueDetected
-    def __ge__(self, other): raise NullValueDetected
+    def __lt__(self, other): raise self._error
+    def __le__(self, other): raise self._error
+    def __eq__(self, other): raise self._error
+    def __ne__(self, other): raise self._error
+    def __gt__(self, other): raise self._error
+    def __ge__(self, other): raise self._error
+
+class Null(BadNumber):
+    _error = NullValueDetected
+class NullFloat(BadNumber, float):
+    pass
+class NullInteger(BadNumber, int):
+    pass
+
+class Unknown(BadNumber):
+
+    _error = UnknownValueDetected
+
+    def __add__(self, other): return self
+    def __sub__(self, other): return self
+    def __mul__(self, other): return self
+    def __matmul__(self, other): return self
+    def __truediv__(self, other): return self
+    def __floordiv__(self, other): return self
+    def __mod__(self, other): return self
+    def __divmod__(self, other): return self
+    def __pow__(self, other, modulo = None): return self
+    def __lshift__(self, other): return self
+    def __rshift__(self, other): return self
+    def __and__(self, other): return self
+    def __xor__(self, other): return self
+    def __or__(self, other): return self
+
+    def __radd__(self, other): return self
+    def __rsub__(self, other): return self
+    def __rmul__(self, other): return self
+    def __rmatmul__(self, other): return self
+    def __rtruediv__(self, other): return self
+    def __rfloordiv__(self, other): return self
+    def __rmod__(self, other): return self
+    def __rdivmod__(self, other): return self
+    def __rpow__(self, other, modulo = None): return self
+    def __rlshift__(self, other): return self
+    def __rrshift__(self, other): return self
+    def __rand__(self, other): return self
+    def __rxor__(self, other): return self
+    def __ror__(self, other): return self
+
+    def __iadd__(self, other): return self
+    def __isub__(self, other): return self
+    def __imul__(self, other): return self
+    def __imatmul__(self, other): return self
+    def __itruediv__(self, other): return self
+    def __ifloordiv__(self, other): return self
+    def __imod__(self, other): return self
+    def __ipow__(self, other, modulo = None): return self
+    def __ilshift__(self, other): return self
+    def __irshift__(self, other): return self
+    def __iand__(self, other): return self
+    def __ixor__(self, other): return self
+    def __ior__(self, other): return self
+
+    def __neg__(self): return self
+    def __pos__(self): return self
+    def __abs__(self): return self
+
+    def __round__(self, ndigits = 0): return self
+    def __trunc__(self): return self
+    def __floor__(self): return self
+    def __ceil__(self): return self
+
+class UnknownFloat(Unknown, float):
+    pass
+class UnknownInteger(Unknown, int):
+    pass
 
 null = Null()
+nullflt = NullFloat()
+nullint = NullInteger()
+inf = InfiniteInteger(True)
+ninf = InfiniteInteger(False)
+unk = Unknown()
+unkflt = UnknownFloat()
+unkint = UnknownInteger()
 
 # object.__add__(self, other)
 # object.__sub__(self, other)

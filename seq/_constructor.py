@@ -57,10 +57,8 @@ class SeqConstructor:
                     )
         elif isinstance(arg, Sequence):
             return self.discrete(arg, **kwargs)
-        elif isinstance(arg, Iterable):
-            return self.seq(arg, **kwargs)
         else:
-            raise TypeError
+            return self.base(arg, **kwargs)
     def __getattr__(self, key):
         return getattr(self.op, key)
 seq = SeqConstructor()
