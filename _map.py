@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 
-from ._base import Function
+from ._derived import Derived
 from ._group import Group
 
-class Map(Function, Mapping):
+class Map(Derived, Mapping):
     _groupClass = Group
     @classmethod
     def kw(cls, **kwargs):

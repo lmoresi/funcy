@@ -1,10 +1,10 @@
 from functools import cached_property, lru_cache
 from itertools import product
 
-from ._base import Function
+from ._derived import Derived
 from . import utilities
 
-class Operation(Function):
+class Operation(Derived):
     __slots__ = ('opkwargs', 'opfn')
 
     def __init__(self,

@@ -3,10 +3,11 @@ from collections import OrderedDict
 
 from .._map import Map
 from ._base import Seq
+from ._seqderived import SeqDerived
 from ._seqgroup import SeqGroup
 from .sequtils import seqlength
 
-class SeqMap(Seq, Map):
+class SeqMap(SeqDerived, Map):
     _groupClass = SeqGroup
     def _iter(self):
         for ks, vs in self._iterTerms():

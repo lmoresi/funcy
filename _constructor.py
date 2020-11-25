@@ -22,8 +22,8 @@ class _Fn:
         return Function
     @cached_property
     def var(self):
-        from ._variable import MutableVariable
-        return MutableVariable
+        from .variable import Variable
+        return Variable
     @cached_property
     def slot(self):
         from ._slot import Slot
@@ -78,7 +78,7 @@ class _Fn:
                     return arg
             else:
                 try:
-                    return self.var(*args, **kwargs)
+                    return self.var.construct_variable(*args, **kwargs)
                 except ValueError:
                     return self.thing(*args, **kwargs)
     def __getitem__(self, arg, **kwargs):

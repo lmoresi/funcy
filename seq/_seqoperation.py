@@ -1,7 +1,8 @@
 from .._operation import Operation, Operations
+from ._seqderived import SeqDerived
 from ._base import Seq
 
-class SeqOperation(Seq, Operation):
+class SeqOperation(SeqDerived, Operation):
 
     def _iter(self):
         return (v for v in self._op_compute(*self._resolve_terms()))

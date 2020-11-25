@@ -1,8 +1,9 @@
 from .._operation import Operation, Operations
 from ._base import Seq
+from ._seqderived import SeqDerived
 from .exceptions import *
 
-class ElementOp(Seq, Operation):
+class ElementOp(SeqDerived, Operation):
 
     def _iter(self):
         return (self._op_compute(*args) for args in self._iterTerms())

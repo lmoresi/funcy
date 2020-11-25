@@ -4,16 +4,25 @@ from .exceptions import *
 
 class Slot(Function):
 
+    open = True
+
+    __slots__ = (
+        'slots',
+        'argslots',
+        'kwargslots',
+        )
+
     def __init__(self, name = None):
+
         super().__init__(name = name)
     def _add_slots(self):
-        self._slots = 1
+        self.slots = 1
         if self.name is None:
-            self._argslots = 1
-            self._kwargslots = []
+            self.argslots = 1
+            self.kwargslots = []
         else:
-            self._argslots = 0
-            self._kwargslots = [self.name]
+            self.argslots = 0
+            self.kwargslots = [self.name]
     def close(self, *args, **kwargs):
         if len(args) + len(kwargs) > self.slots:
             raise FuncyException

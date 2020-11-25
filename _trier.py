@@ -1,7 +1,7 @@
-from ._base import Function
+from ._derived import Derived
 from .exceptions import *
 
-class Trier(Function):
+class Trier(Derived):
     __slots__ = (
         'tryFunc',
         'altVal',

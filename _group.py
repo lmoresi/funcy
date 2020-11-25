@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from functools import cached_property, lru_cache
 
-from ._base import Function
+from ._derived import Derived
 
-class Group(Function, Sequence):
+class Group(Derived, Sequence):
 
     def _operate(self, *args, op = None, **kwargs):
         return Operation(self, *args, op = op, **kwargs)

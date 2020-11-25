@@ -1,7 +1,7 @@
 class FuncyException(Exception):
     pass
 
-class MissingAsset(FuncyException):
+class MissingAsset(FuncyException, TypeError):
     pass
 
 class FuncyValueError(FuncyException, ValueError):

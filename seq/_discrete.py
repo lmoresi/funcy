@@ -4,10 +4,11 @@ import numbers
 import reseed
 
 from ..special import *
-from .exceptions import *
 from ._base import Seq, Seeded
+from ._seqderived import SeqDerived
+from .exceptions import *
 
-class Discrete(Seq):
+class Discrete(SeqDerived):
     discrete = True
     def _iter(self):
         return iter(self.prime)

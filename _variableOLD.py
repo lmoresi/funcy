@@ -24,15 +24,6 @@ class Variable(Function):
             else:
                 return 'numeric'
 
-    __slots__ = (
-        'data',
-        'pipe',
-        'dtype',
-        'scalar',
-        '_set_value',
-        '_length',
-        )
-
     def __init__(self,
             arg,
             name = None,

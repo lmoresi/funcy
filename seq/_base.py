@@ -8,7 +8,6 @@ from .. import Fn
 from .._base import Function
 from ..special import *
 from ._seqiterable import SeqIterable
-from .sequtils import seqlength
 from .exceptions import *
 
 class Seq(Function, Iterable):
@@ -26,8 +25,8 @@ class Seq(Function, Iterable):
 
     def evaluate(self):
         return self.seqIterable
-    def refresh(self):
-        super().refresh()
+    def update(self):
+        super().update()
         self.seqIterable._get_index.cache_clear()
         self.seqIterable._get_slice.cache_clear()
 
@@ -41,16 +40,7 @@ class Seq(Function, Iterable):
     def seqLength(self):
         return self._seqLength()
     def _seqLength(self):
-        if self.seqTerms:
-            v = 1
-            for t in self.seqTerms:
-                v *= seqlength(t)
-            return v
-        else:
-            return unkint
-    @cached_property
-    def seqTerms(self):
-        return [t for t in self.fnTerms if isinstance(t, Seq)]
+        raise MissingAsset
     def __len__(self):
         return self._seqLength()
 
