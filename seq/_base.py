@@ -6,19 +6,19 @@ import reseed
 
 from .. import Fn
 from .._base import Function
+from .._derived import Derived
 from ..special import *
 from ._seqiterable import SeqIterable
+from .sequtils import seqlength
 from .exceptions import *
 
-class Seq(Function, Iterable):
+class Seq(Derived, Iterable):
 
     discrete = False
 
-    def _iterTerms(self):
-        return product(*(
-            t if isinstance(t, SeqIterable) else (t,)
-                for t in self._resolve_terms()
-            ))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @cached_property
     def seqIterable(self):
         return SeqIterable(self)
@@ -36,17 +36,21 @@ class Seq(Function, Iterable):
     def __iter__(self):
         return iter(self.value)
 
-    @property
-    def seqLength(self):
-        return self._seqLength()
+    @cached_property
+    def seqTerms(self):
+        return [t for t in self.fnTerms if isinstance(t, Seq)]
     def _seqLength(self):
-        raise MissingAsset
+        return unkint
     def __len__(self):
         return self._seqLength()
 
-    @cached_property
-    def _opman(self):
-        return Fn.elementop
+    def op(self, *args, op, rev = False, **kwargs):
+        return Fn[
+            Fn.op.starmap(
+                Fn.op.getfn(op),
+                Fn[(*args, self) if rev else (self, *args)],
+                )
+            ]
 
 class UnSeq(Function):
     def __init__(self, seq):

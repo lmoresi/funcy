@@ -5,10 +5,10 @@ import reseed
 
 from ..special import *
 from ._base import Seq, Seeded
-from ._seqderived import SeqDerived
+from ._base import Seq
 from .exceptions import *
 
-class Discrete(SeqDerived):
+class Discrete(Seq):
     discrete = True
     def _iter(self):
         return iter(self.prime)

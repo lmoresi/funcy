@@ -1,7 +1,7 @@
 from ._base import Seq
-from ._seqderived import SeqDerived
+from ._base import Seq
 
-class HyperCube(SeqDerived):
+class HyperCube(Seq):
     pass
 
 class Latin(HyperCube):

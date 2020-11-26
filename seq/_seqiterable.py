@@ -68,9 +68,6 @@ class SeqIterable(Iterable):
             # out.append(val)
         # return out
     def __str__(self):
-        return self._str
-    @cached_property
-    def _str(self):
         length = len(self)
         if isinstance(length, Infinite):
             head = ', '.join(str(v) for v in self[:3])
@@ -87,7 +84,4 @@ class SeqIterable(Iterable):
                 content = f'{head}, ... {tail}'
         return f'[{content}]'
     def __repr__(self):
-        return self._repr
-    @cached_property
-    def _repr(self):
         return f'SeqIterable({repr(self.seq)}) == {str(self)}'

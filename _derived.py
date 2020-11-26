@@ -1,4 +1,5 @@
 from functools import cached_property, lru_cache
+import warnings
 
 from ._constructor import Fn
 from .exceptions import *
@@ -17,7 +18,11 @@ class Derived(Function):
         super().__init__(*args, **kwargs)
         for term in self.baseTerms:
             term.register_downstream(self)
-        assert len(self.fnTerms)
+        if not len(self.fnTerms):
+            warnings.warn(
+                "No fnTerms detected in this 'derived' function \
+                - did you expect this?"
+                )
 
     def refresh(self):
         for term in self.baseTerms:

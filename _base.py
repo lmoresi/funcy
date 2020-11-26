@@ -25,10 +25,11 @@ class Function:
 
     @classmethod
     def _value_resolve(cls, val):
-        try:
-            return val.value
-        except AttributeError:
-            return val
+        while True:
+            try:
+                val = val.value
+            except AttributeError:
+                return val
 
     def evaluate(self):
         raise MissingAsset
@@ -45,13 +46,9 @@ class Function:
 
     def op(self, *args, op, rev = False, **kwargs):
         if rev:
-            return self._opman(op, *(*args, self), **kwargs)
+            return Fn.op(op, *(*args, self), **kwargs)
         else:
-            return self._opman(op, self, *args, **kwargs)
-    @cached_property
-    def _opman(self):
-        # from ._constructor import Fn
-        return Fn.op
+            return Fn.op(op, self, *args, **kwargs)
 
     def __add__(self, other): return self.op(other, op = 'add')
     def __sub__(self, other):return self.op(other, op = 'sub')

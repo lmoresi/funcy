@@ -8,14 +8,14 @@ class _Fn:
     def op(self):
         from .ops import ops
         return ops
-    @cached_property
-    def elementop(self):
-        from .ops import elementops
-        return elementops
-    @cached_property
-    def seqop(self):
-        from .ops import seqops
-        return seqops
+    # @cached_property
+    # def elementop(self):
+    #     from .ops import elementops
+    #     return elementops
+    # @cached_property
+    # def seqop(self):
+    #     from .ops import seqops
+    #     return seqops
     @cached_property
     def base(self):
         from ._base import Function
@@ -64,6 +64,10 @@ class _Fn:
     def null(self):
         from .special import null
         return null
+    @cached_property
+    def n(self):
+        from .seq import n
+        return n
     def __call__(self, *args, **kwargs):
         if len(args) == 0:
             return self.slot(**kwargs)

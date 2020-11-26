@@ -23,10 +23,8 @@ class Operation(Derived):
         super().__init__(*terms, op = op, **kwargs)
 
     def evaluate(self):
-        return self._op_compute(*self.terms)
-    def _op_compute(self, *args):
         return self.opfn(
-            *(self._value_resolve(a) for a in args),
+            *self._resolve_terms(),
             **self.opkwargs,
             )
 

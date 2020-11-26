@@ -60,6 +60,22 @@ class Ops:
         self.keys = keys
     @lru_cache
     def __getitem__(self, key):
+        got = self.getfn(key)
+        if type(got) is Ops:
+            return got
+        else:
+            return op_wrap(
+                got,
+                *self.keys,
+                opclass = self.opclass
+                )
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError
+    @lru_cache
+    def getfn(self, key):
         if type(key) is tuple:
             targ = self
             for k in key:
@@ -76,30 +92,18 @@ class Ops:
                     obj = self.source[key]
                 else:
                     raise ValueError("Sourcetype was:", self._sourceType)
-                if type(obj) is Ops:
-                    return obj
-                else:
-                    return op_wrap(
-                        obj,
-                        *self.keys,
-                        opclass = self.opclass
-                        )
+                return obj
             except KeyError:
                 if self._sourceType == 'mapping':
                     for v in self.source.values():
                         if type(v) is Ops:
                             try:
-                                return v[key]
+                                return v.getfn(key)
                             except KeyError:
                                 pass
                     raise KeyError
                 else:
                     raise KeyError
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError
 
     def __call__(self, key, *args, **kwargs):
         return self[key](*args, **kwargs)
@@ -143,9 +147,9 @@ universalSources = OrderedDict(
     )
 
 from ._operation import Operation, Operations
-from .seq._elementoperation import ElementOp, ElementOps
-from .seq._seqoperation import SeqOperation, SeqOperations
+# from .seq._elementoperation import ElementOp, ElementOps
+# from .seq._seqoperation import SeqOperation, SeqOperations
 
 ops = Ops({'_op': Operations, **universalSources}, opclass = Operation)
-elementops = Ops({'_op': ElementOps, **universalSources}, opclass = ElementOp)
-seqops = Ops({'_op': SeqOperations, **universalSources}, opclass = SeqOperation)
+# elementops = Ops({'_op': ElementOps, **universalSources}, opclass = ElementOp)
+# seqops = Ops({'_op': SeqOperations, **universalSources}, opclass = SeqOperation)
