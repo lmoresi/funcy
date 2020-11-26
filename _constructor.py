@@ -41,10 +41,6 @@ class _Fn:
         from .seq import seq
         return seq
     @cached_property
-    def unseq(self):
-        from .seq import UnSeq
-        return UnSeq
-    @cached_property
     def thing(self):
         from ._thing import Thing
         return Thing

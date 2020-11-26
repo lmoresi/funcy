@@ -52,19 +52,6 @@ class Seq(Derived, Iterable):
                 )
             ]
 
-class UnSeq(Function):
-    def __init__(self, seq):
-        if not seq.isSeq:
-            raise TypeError("Cannot unseq non-seq.")
-        super().__init__(seq)
-    def evaluate(self):
-        return self.prime.value
-    def seqTerms(self):
-        return []
-    @property
-    def isSeq(self):
-        return False
-
 class Seeded(Seq):
     @cached_property
     def _startseed(self):
