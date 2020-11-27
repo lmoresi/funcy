@@ -1,0 +1,4 @@
+from ._base import Sett
+
+class Numerical(Sett):
+    pass

@@ -26,24 +26,11 @@ class SeqIterable(Iterable):
         return self.seq._iter()
     def __getitem__(self, arg):
         if isinstance(arg, slice):
-            return self._get_slice(*self._process_slice(arg))
+            return self._get_slice(arg.start, arg.stop, arg.step)
         else:
             return self._get_index(arg)
-    def _process_negative(self, target):
-        length = len(self)
-        if isinstance(length, (Unknown, Infinite, Null)):
-            raise ValueError("Cannot reverse this sequence.")
-        return target + length
-    def _process_slice(self, slicer):
-        start, stop, step = slicer.start, slicer.stop, slicer.step
-        return (
-            0 if start is None else self._process_negative(start),
-            len(self) if stop is None else self._process_negative(stop),
-            (1 if step is None else step),
-            )
     @lru_cache
     def _get_index(self, target):
-        target = self._process_negative(target)
         it, i = iter(self), -1
         try:
             while i < target:
@@ -58,15 +45,6 @@ class SeqIterable(Iterable):
     @lru_cache
     def _get_slice(self, start, stop, step):
         return itertools.islice(self, start, stop, step)
-        # it, i = iter(self), -1
-        # out = []
-        # for si in range(start, stop, step):
-            # si = self._process_negative(si)
-            # while not i == si:
-            #     val = next(it)
-            #     i += 1
-            # out.append(val)
-        # return out
     def __str__(self):
         length = len(self)
         if isinstance(length, Infinite):
@@ -85,3 +63,26 @@ class SeqIterable(Iterable):
         return f'[{content}]'
     def __repr__(self):
         return f'SeqIterable({repr(self.seq)}) == {str(self)}'
+
+
+    # def _process_negative(self, target):
+    #     length = len(self)
+    #     if isinstance(length, (Unknown, Infinite, Null)):
+    #         raise ValueError("Cannot reverse this sequence.")
+    #     return target + length
+    # def _process_slice(self, slicer):
+    #     start, stop, step = slicer.start, slicer.stop, slicer.step
+    #     return (
+    #         0 if start is None else self._process_negative(start),
+    #         len(self) if stop is None else self._process_negative(stop),
+    #         (1 if step is None else step),
+    #         )
+        # it, i = iter(self), -1
+        # out = []
+        # for si in range(start, stop, step):
+            # si = self._process_negative(si)
+            # while not i == si:
+            #     val = next(it)
+            #     i += 1
+            # out.append(val)
+        # return out

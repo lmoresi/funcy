@@ -3,12 +3,17 @@ import numbers
 from collections.abc import Sequence, Iterable
 
 from .samplers import Sampler
+from .._derived import Derived
 
 class SeqConstructor:
     @cached_property
     def base(self):
         from ._base import Seq
         return Seq
+    @cached_property
+    def op(self):
+        from ..ops import seqops
+        return seqops
     @cached_property
     def continuum(self):
         from ._continuous import Continuum
@@ -33,13 +38,18 @@ class SeqConstructor:
     def map(self):
         from ._seqmap import SeqMap
         return SeqMap
+    @cached_property
+    def n(self):
+        from .n import n
+        return n
     def __call__(self, arg, **kwargs):
         if isinstance(arg, self.base):
             if kwargs:
                 raise ValueError("Cannot specify kwargs when type is Seq.")
+            # if isinstance(arg, )
             return arg
-        elif type(arg) is tuple:
-            return self.group(*arg)
+        # elif type(arg) is tuple:
+        #     return self.group(*arg)
         elif type(arg) is slice:
             start, stop, step = arg.start, arg.stop, arg.step
             if isinstance(step, numbers.Number):

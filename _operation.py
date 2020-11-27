@@ -1,5 +1,4 @@
-from functools import cached_property, lru_cache
-from itertools import product
+from functools import partial
 
 from ._derived import Derived
 from . import utilities
@@ -18,32 +17,20 @@ class Operation(Derived):
                 terms = Operation(*terms, op = sop)
                 if not type(terms) is tuple:
                     terms = terms,
+        self.opfn = partial(op, **kwargs)
+        self.opfn.__name__ = op.__name__
         self.opkwargs = kwargs
-        self.opfn = op
         super().__init__(*terms, op = op, **kwargs)
 
     def evaluate(self):
-        return self.opfn(
-            *self._resolve_terms(),
-            **self.opkwargs,
-            )
+        return self.opfn(*self._resolve_terms())
 
     def _titlestr(self):
         return self.opfn.__name__
     def _kwargstr(self):
-        kwargs = self.opkwargs.copy()
+        kwargs = self.kwargs.copy()
+        del kwargs['op']
         if kwargs:
             return utilities.kwargstr(**kwargs)
         else:
             return ''
-
-class Operations:
-    @classmethod
-    def shuffled(cls, sequence, seed = None):
-        from reseed import Reseed
-        from .special import inf
-        if not len(sequence) < inf:
-            raise FuncyException("Cannot shuffle infinite sequence.")
-        sequence = [*sequence]
-        Reseed.shuffle(sequence, seed = seed)
-        return sequence

@@ -3,6 +3,7 @@ import numbers
 
 import reseed
 
+from ..variable import Scalar
 from ..special import *
 from ._base import Seq, Seeded
 from ._base import Seq
@@ -11,15 +12,15 @@ from .exceptions import *
 class Discrete(Seq):
     discrete = True
     def _iter(self):
-        return iter(self.prime)
+        return (self._value_resolve(v) for v in self.prime)
     def _seqLength(self):
         return len(self.prime)
 
 class Regular(Discrete):
-    def __init__(self, start = 0, stop = 1, step = 1, **kwargs):
-        start = 0 if start is None else start
-        stop = 1 if stop is None else stop
-        step = 1 if step is None else step
+    def __init__(self, start = 0, stop = inf, step = 1, **kwargs):
+        if start is None: start = 0
+        if stop is None: stop = inf
+        if step is None: step = 1
         super().__init__(start, stop, step, **kwargs)
     def _iter(self):
         start, stop, step = self._resolve_terms()
@@ -47,3 +48,26 @@ class Shuffle(Seeded, Discrete):
     def _get_iterItems(self):
         start, stop, _ = self._resolve_terms()
         return list(range(start, stop))
+
+class Procedural(Discrete):
+    __slots__ = (
+        'n',
+        'fn',
+        'lenFn',
+        'stopFn',
+        )
+    def __init__(self, fn, /, start = 0, stop = inf, step = 1, **kwargs):
+        super().__init__(fn, start, stop, step, **kwargs)
+        self.lenFn = start - stop
+        self.n = Scalar(int, name = 'n')
+        self.runFn = self.n < nmax
+        self.fn = fn.close(n = self.n)
+    def _seqLength(self):
+        return int(self._value_resolve(self.lenFn))
+    def _iter(self):
+        n, fn, runFn = self.n, self.fn, self.runFn
+        start, stop, step = self.terms[1:]
+        self.n.set(start)
+        while self.runFn:
+            self.n += step
+            yield self.fn.value

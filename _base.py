@@ -22,14 +22,14 @@ class Function:
         self.kwargs = kwargs
         if terms:
             self.prime = self.terms[0]
+        super().__init__()
 
     @classmethod
     def _value_resolve(cls, val):
-        while True:
-            try:
-                val = val.value
-            except AttributeError:
-                return val
+        try:
+            return val.value
+        except AttributeError:
+            return val
 
     def evaluate(self):
         raise MissingAsset
@@ -49,59 +49,61 @@ class Function:
             return Fn.op(op, *(*args, self), **kwargs)
         else:
             return Fn.op(op, self, *args, **kwargs)
+    def arithmop(self, *args, **kwargs):
+        return self.op(*args, **kwargs)
 
-    def __add__(self, other): return self.op(other, op = 'add')
-    def __sub__(self, other):return self.op(other, op = 'sub')
-    def __mul__(self, other): return self.op(other, op = 'mul')
-    def __matmul__(self, other): return self.op(other, op = 'matmul')
-    def __truediv__(self, other): return self.op(other, op = 'truediv')
-    def __floordiv__(self, other): return self.op(other, op = 'floordiv')
-    def __mod__(self, other): return self.op(other, op = 'mod')
-    def __divmod__(self, other): return self.op(other, op = 'divmod')
-    def __pow__(self, other): return self.op(other, op = 'pow')
-    # def __lshift__(self, other): return self.op(other, op = 'lshift')
-    # def __rshift__(self, other): return self.op(other, op = 'rshift')
-    def __and__(self, other): return self.op(other, op = 'amp')
-    def __xor__(self, other):return self.op(other, op = 'hat')
-    def __or__(self, other): return self.op(other, op = 'bar')
+    def __add__(self, other): return self.arithmop(other, op = 'add')
+    def __sub__(self, other):return self.arithmop(other, op = 'sub')
+    def __mul__(self, other): return self.arithmop(other, op = 'mul')
+    def __matmul__(self, other): return self.arithmop(other, op = 'matmul')
+    def __truediv__(self, other): return self.arithmop(other, op = 'truediv')
+    def __floordiv__(self, other): return self.arithmop(other, op = 'floordiv')
+    def __mod__(self, other): return self.arithmop(other, op = 'mod')
+    def __divmod__(self, other): return self.arithmop(other, op = 'divmod')
+    def __pow__(self, other): return self.arithmop(other, op = 'pow')
+    # def __lshift__(self, other): return self.arithmop(other, op = 'lshift')
+    # def __rshift__(self, other): return self.arithmop(other, op = 'rshift')
+    def __and__(self, other): return self.arithmop(other, op = 'amp')
+    def __xor__(self, other):return self.arithmop(other, op = 'hat')
+    def __or__(self, other): return self.arithmop(other, op = 'bar')
 
-    def __radd__(self, other): return self.op(other, op = 'add', rev = True)
-    def __rsub__(self, other):return self.op(other, op = 'sub', rev = True)
-    def __rmul__(self, other): return self.op(other, op = 'mul', rev = True)
-    def __rmatmul__(self, other): return self.op(other, op = 'matmul', rev = True)
-    def __rtruediv__(self, other): return self.op(other, op = 'truediv', rev = True)
-    def __rfloordiv__(self, other): return self.op(other, op = 'floordiv', rev = True)
-    def __rmod__(self, other): return self.op(other, op = 'mod', rev = True)
-    def __rdivmod__(self, other): return self.op(other, op = 'divmod', rev = True)
-    def __rpow__(self, other): return self.op(other, op = 'pow', rev = True)
-    def __rlshift__(self, other): return self.op(other, op = 'lshift', rev = True)
-    def __rrshift__(self, other): return self.op(other, op = 'rshift', rev = True)
-    def __rand__(self, other): return self.op(other, op = 'amp', rev = True)
-    def __rxor__(self, other):return self.op(other, op = 'hat', rev = True)
-    def __ror__(self, other): return self.op(other, op = 'bar', rev = True)
+    def __radd__(self, other): return self.arithmop(other, op = 'add', rev = True)
+    def __rsub__(self, other):return self.arithmop(other, op = 'sub', rev = True)
+    def __rmul__(self, other): return self.arithmop(other, op = 'mul', rev = True)
+    def __rmatmul__(self, other): return self.arithmop(other, op = 'matmul', rev = True)
+    def __rtruediv__(self, other): return self.arithmop(other, op = 'truediv', rev = True)
+    def __rfloordiv__(self, other): return self.arithmop(other, op = 'floordiv', rev = True)
+    def __rmod__(self, other): return self.arithmop(other, op = 'mod', rev = True)
+    def __rdivmod__(self, other): return self.arithmop(other, op = 'divmod', rev = True)
+    def __rpow__(self, other): return self.arithmop(other, op = 'pow', rev = True)
+    def __rlshift__(self, other): return self.arithmop(other, op = 'lshift', rev = True)
+    def __rrshift__(self, other): return self.arithmop(other, op = 'rshift', rev = True)
+    def __rand__(self, other): return self.arithmop(other, op = 'amp', rev = True)
+    def __rxor__(self, other):return self.arithmop(other, op = 'hat', rev = True)
+    def __ror__(self, other): return self.arithmop(other, op = 'bar', rev = True)
 
-    def __neg__(self): return self.op(op = 'neg')
-    def __pos__(self): return self.op(op = 'pos')
-    def __abs__(self): return self.op(op = 'abs')
-    def __invert__(self): return self.op(op = 'inv')
+    def __neg__(self): return self.arithmop(op = 'neg')
+    def __pos__(self): return self.arithmop(op = 'pos')
+    def __abs__(self): return self.arithmop(op = 'abs')
+    def __invert__(self): return self.arithmop(op = 'inv')
 
-    def __complex__(self): self.op(op = 'complex')
-    def __int__(self): self.op(op = 'int')
-    def __float__(self): self.op(op = 'float')
+    def __complex__(self): self.arithmop(op = 'complex')
+    def __int__(self): self.arithmop(op = 'int')
+    def __float__(self): self.arithmop(op = 'float')
     #
     # def __index__(self): raise NullValueDetected # for integrals
 
-    def __round__(self, ndigits = 0): self.op(ndigits, op = 'round')
+    def __round__(self, ndigits = 0): self.arithmop(ndigits, op = 'round')
     # def __trunc__(self): raise NullValueDetected
-    def __floor__(self): return self.op(op = 'floor')
-    def __ceil__(self): return self.op(op = 'ceil')
+    def __floor__(self): return self.arithmop(op = 'floor')
+    def __ceil__(self): return self.arithmop(op = 'ceil')
 
-    def __lt__(self, other): return self.op(other, op = 'lt')
-    def __le__(self, other): return self.op(other, op = 'le')
-    # def __eq__(self, other): return self.op(other, op = 'eq')
-    # def __ne__(self, other): return self.op(other, op = 'ne')
-    def __gt__(self, other): return self.op(other, op = 'gt')
-    def __ge__(self, other): return self.op(other, op = 'ge')
+    def __lt__(self, other): return self.arithmop(other, op = 'lt')
+    def __le__(self, other): return self.arithmop(other, op = 'le')
+    # def __eq__(self, other): return self.arithmop(other, op = 'eq')
+    # def __ne__(self, other): return self.arithmop(other, op = 'ne')
+    def __gt__(self, other): return self.arithmop(other, op = 'gt')
+    def __ge__(self, other): return self.arithmop(other, op = 'ge')
 
     def __bool__(self):
         return bool(self.value)

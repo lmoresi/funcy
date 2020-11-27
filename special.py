@@ -15,7 +15,8 @@ class InfiniteFloat(Infinite, float):
         val = 'inf' if pos else '-inf'
         obj = super().__new__(cls, val)
         return obj
-    def __float__(self): return float('inf') if self._posArg else float('-inf')
+    def __float__(self):
+        return float('inf') if self._posArg else float('-inf')
 
 class InfiniteInteger(Infinite, int):
 
@@ -23,7 +24,8 @@ class InfiniteInteger(Infinite, int):
         val = sys.maxsize if pos else -sys.maxsize + 1
         obj = super().__new__(cls, val)
         return obj
-    def __int__(self): return sys.maxsize if self._posArg else -sys.maxsize + 1
+    def __int__(self):
+        return sys.maxsize if self._posArg else -sys.maxsize + 1
 
     # def __getattr__(self, key): raise InfiniteValueDetected
     # def __getitem__(self, key): raise InfiniteValueDetected
@@ -88,7 +90,8 @@ class InfiniteInteger(Infinite, int):
 
     def __complex__(self): raise NotImplemented
 
-    # def __index__(self): return sys.maxsize # for integrals
+    def __index__(self):
+        return 2147483647 - 1 if self._posArg else -2147483647 + 1
 
     def __round__(self, ndigits = 0): raise InfiniteValueDetected
     def __trunc__(self): raise InfiniteValueDetected

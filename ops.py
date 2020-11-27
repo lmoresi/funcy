@@ -118,7 +118,8 @@ def bar(x, y):
     return x or y
 def hat(x, y):
     return (x or y) and not (x and y)
-
+# def exc(x, e, y):
+#     t
 
 import math
 import builtins
@@ -128,7 +129,11 @@ import numpy
 import scipy
 import sklearn
 import reseed
-universalSources = OrderedDict(
+from . import operations
+from .seq import seqoperations
+sources = OrderedDict(
+    _op = operations,
+    _sop = seqoperations,
     _basic = dict(
         getitem = getitem,
         call = call,
@@ -146,10 +151,7 @@ universalSources = OrderedDict(
     sk = sklearn,
     )
 
-from ._operation import Operation, Operations
-# from .seq._elementoperation import ElementOp, ElementOps
-# from .seq._seqoperation import SeqOperation, SeqOperations
-
-ops = Ops({'_op': Operations, **universalSources}, opclass = Operation)
-# elementops = Ops({'_op': ElementOps, **universalSources}, opclass = ElementOp)
-# seqops = Ops({'_op': SeqOperations, **universalSources}, opclass = SeqOperation)
+from ._operation import Operation
+from .seq._seqoperation import SeqOperation
+ops = Ops(sources, opclass = Operation)
+seqops = Ops(sources, opclass = SeqOperation)

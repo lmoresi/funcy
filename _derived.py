@@ -18,11 +18,11 @@ class Derived(Function):
         super().__init__(*args, **kwargs)
         for term in self.baseTerms:
             term.register_downstream(self)
-        if not len(self.fnTerms):
-            warnings.warn(
-                "No fnTerms detected in this 'derived' function \
-                - did you expect this?"
-                )
+        # if not len(self.fnTerms):
+        #     warnings.warn(
+        #         "No fnTerms detected in this 'derived' function \
+        #         - did you expect this?"
+        #         )
 
     def refresh(self):
         for term in self.baseTerms:
@@ -143,16 +143,16 @@ class Derived(Function):
         terms = []
         changes = 0
         for t in self.terms:
-            if type(t) is Fn.slot:
+            if isinstance(t, Fn.slot):
                 if t.argslots:
                     try:
-                        t = next(queryArgs)
+                        t = t(next(queryArgs))
                         changes += 1
                     except StopIteration:
                         pass
                 else:
                     if t.name in queryKwargs:
-                        t = queryKwargs[t.name]
+                        t = t(queryKwargs[t.name])
                         changes += 1
             elif isinstance(t, Fn.base):
                 if t.open:

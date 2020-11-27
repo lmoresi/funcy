@@ -1,6 +1,0 @@
-from ..variable import Scalar
-
-class _N(type):
-    ...
-class N(metaclass = _N):
-    ...

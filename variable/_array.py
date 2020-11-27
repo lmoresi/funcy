@@ -34,7 +34,10 @@ class Array(Number):
             self._isnull = True
 
     def set(self, val):
-        self.data[...] = val
+        try:
+            self.data[...] = val
+        except TypeError:
+            self.data[...] = self._value_resolve(val)
         self.refresh()
     def rectify(self):
         if self._isnull:

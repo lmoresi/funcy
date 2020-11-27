@@ -1,5 +1,5 @@
 from functools import cached_property
-from collections.abc import Iterable
+from collections.abc import Iterable, Sized
 from itertools import product
 
 import reseed
@@ -10,9 +10,10 @@ from .._derived import Derived
 from ..special import *
 from ._seqiterable import SeqIterable
 from .sequtils import seqlength
+from . import seqoperations as seqops
 from .exceptions import *
 
-class Seq(Derived, Iterable):
+class Seq(Derived, Iterable, Sized):
 
     discrete = False
 
@@ -45,12 +46,28 @@ class Seq(Derived, Iterable):
         return self._seqLength()
 
     def op(self, *args, op, rev = False, **kwargs):
-        return Fn[
-            Fn.op.starmap(
-                Fn.op.getfn(op),
-                Fn[(*args, self) if rev else (self, *args)],
-                )
-            ]
+        if rev:
+            return Fn.seq.op(op, *(*args, self), **kwargs)
+        else:
+            return Fn.seq.op(op, self, *args, **kwargs)
+    def arithmop(self, *args, op, rev = False, **kwargs):
+        if rev:
+            return Fn.seq.op(op, *(*args, self), style = 'product', **kwargs)
+        else:
+            return Fn.seq.op(op, self, *args, style = 'product', **kwargs)
+
+    def __getitem__(self, key):
+        return self.value[key]
+
+    @cached_property
+    def chain(self):
+        return Fn.seq.op.chainiter(self)
+    @cached_property
+    def product(self):
+        return Fn.seq.op.productiter(self)
+    @cached_property
+    def zip(self):
+        return Fn.seq.op.zipiter(self)
 
 class Seeded(Seq):
     @cached_property

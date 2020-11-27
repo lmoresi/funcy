@@ -13,9 +13,6 @@ class Slot(Function):
         )
 
     def __init__(self, name = None):
-
-        super().__init__(name = name)
-    def _add_slots(self):
         self.slots = 1
         if self.name is None:
             self.argslots = 1
@@ -23,18 +20,10 @@ class Slot(Function):
         else:
             self.argslots = 0
             self.kwargslots = [self.name]
-    def close(self, *args, **kwargs):
-        if len(args) + len(kwargs) > self.slots:
-            raise FuncyException
-        if len(args):
-            return args[0]
-        elif len(kwargs):
-            if not kwargs.keys()[0] == self.name:
-                raise KeyError
-            return kwargs.values()[0]
-        else:
-            raise Exception
+        super().__init__(name = name)
         # raise FuncyException("Cannot close a Slot function.")
+    def __call__(self, arg):
+        return arg
     def evaluate(self):
         try:
             return self.tempVal
