@@ -1,5 +1,4 @@
-from ._base import Seq
-from ._base import Seq
+from .._base import Seq
 
 class HyperCube(Seq):
     pass
@@ -28,3 +27,6 @@ def latin_hypercube(n, d, lower = 0, upper = 1):
         )
     samples = improved_lhd_matrix(n, d)
     return samples / n * (upper - lower) + lower
+
+# class Bifurcate(HyperCube):
+#     def __init__(self, lower, upper, n)

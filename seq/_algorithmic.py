@@ -1,13 +1,17 @@
+from functools import cached_property
+
 from ._base import Seq
 from ..variable import Scalar
 from ..special import *
 
-class Algorithmic(Seq):
-    __slots__ = ('n', 'algorithm',)
-    def __init__(self, algorithm, **kwargs):
-        self.n = Scalar(0, name = 'n')
-        self.algorithm = algorithm.close(_seq_n = self.n)
-        super().__init__(algorithm, **kwargs)
+class _Algorithmic(Seq):
+    _algorithm = None
+    @cached_property
+    def n(self):
+        return Scalar(0, name = 'n')
+    @cached_property
+    def algorithm(self):
+        return self._algorithm.close(_seq_n = self.n)
     def _iter(self):
         self.n.set(-1)
         while True:
@@ -15,3 +19,8 @@ class Algorithmic(Seq):
             yield self.algorithm.value
     def _seqLength(self):
         return inf
+
+class Algorithmic(_Algorithmic):
+    def __init__(self, algorithm):
+        self._algorithm = algorithm
+        super().__init__(self.algorithm)

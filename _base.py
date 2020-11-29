@@ -164,7 +164,11 @@ class Function:
     def copy(self):
         return type(self(*self.terms, **self.kwargs))
 
-from ._constructor import Fn
+    @cached_property
+    def Fn(self):
+        from ._constructor import Fn
+        return Fn
+
 # from .seq import *
 
 

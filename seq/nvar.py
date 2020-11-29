@@ -17,5 +17,3 @@ class N(Slot):
         return ''
     def __str__(self):
         return self.namestr
-
-n = N()

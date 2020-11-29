@@ -63,17 +63,17 @@ class Seq(Derived, Iterable, Sized):
         return self.value[key]
 
     @cached_property
-    def chain(self):
-        return Fn.seq.op.chainiter(self)
+    def chained(self):
+        return self.Fn.seq.op.chainiter(self)
     @cached_property
-    def product(self):
-        return Fn.seq.op.productiter(self)
+    def permuted(self):
+        return self.Fn.seq.op.productiter(self)
     @cached_property
-    def zip(self):
-        return Fn.seq.op.zipiter(self)
+    def zipped(self):
+        return self.Fn.seq.op.zipiter(self)
     @cached_property
-    def muddle(self):
-        return Fn.seq.op.muddle(self)
+    def muddled(self):
+        return self.Fn.seq.op.muddle(self)
 
 class Seeded(Seq):
     @cached_property
@@ -95,5 +95,3 @@ class Seeded(Seq):
     #     return (self[i] for i in range(start, stop, step))
     # def __iter__(self):
     #     return (self[i] for i in range(len(self)))
-
-from ._constructor import seq

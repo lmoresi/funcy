@@ -38,8 +38,8 @@ class _Fn:
         return Group
     @cached_property
     def seq(self):
-        from .seq import seq
-        return seq
+        from .seq._constructor import SeqConstructor
+        return SeqConstructor()
     @cached_property
     def thing(self):
         from ._thing import Thing
@@ -62,8 +62,8 @@ class _Fn:
         return null
     @cached_property
     def n(self):
-        from .seq import n
-        return n
+        from .seq.nvar import N
+        return N()
     def __call__(self, *args, **kwargs):
         if len(args) == 0:
             return self.slot(**kwargs)
@@ -83,6 +83,13 @@ class _Fn:
                     return self.thing(*args, **kwargs)
     def __getitem__(self, arg, **kwargs):
         return self.seq(arg, **kwargs)
+    @lru_cache
     def __getattr__(self, key):
-        return getattr(self.op, key)
+        for sk in ('seq', 'op'):
+            source = getattr(self, sk)
+            try:
+                return getattr(source, key)
+            except AttributeError:
+                pass
+        raise AttributeError
 Fn = _Fn()

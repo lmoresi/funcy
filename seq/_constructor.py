@@ -1,10 +1,6 @@
-from functools import cached_property
+from functools import cached_property, lru_cache
 import numbers
 from collections.abc import Sequence, Iterable
-
-from .samplers import Sampler
-from .._derived import Derived
-from ._algorithmic import Algorithmic
 
 class SeqConstructor:
     @cached_property
@@ -20,9 +16,17 @@ class SeqConstructor:
         from ._continuous import Continuum
         return Continuum
     @cached_property
+    def algorithmic(self):
+        from ._algorithmic import Algorithmic
+        return Algorithmic
+    @cached_property
     def discrete(self):
         from ._discrete import Discrete
         return Discrete
+    @cached_property
+    def derived(self):
+        from .._derived import Derived
+        return Derived
     @cached_property
     def regular(self):
         from ._discrete import Regular
@@ -40,15 +44,19 @@ class SeqConstructor:
         from ._seqmap import SeqMap
         return SeqMap
     @cached_property
-    def n(self):
-        from .n import n
-        return n
+    def samplers(self):
+        from .samplers import Samplers
+        return Samplers
+    @cached_property
+    def sampler(self):
+        from .samplers import Sampler
+        return Sampler
     def __call__(self, arg, **kwargs):
-        if isinstance(arg, Derived):
+        if isinstance(arg, self.derived):
             if kwargs:
                 raise ValueError("Cannot specify kwargs when type is Seq.")
             if hasattr(arg, '_abstract'):
-                return Algorithmic(arg)
+                return self.algorithmic(arg)
             else:
                 return arg
         elif type(arg) is slice:
@@ -60,16 +68,26 @@ class SeqConstructor:
                     return self.shuffle(start, stop, step, **kwargs)
                 else:
                     return self.continuum(start, stop, step, **kwargs)
-            elif isinstance(step, Sampler):
+            elif isinstance(step, self.sampler):
                 return step(start, stop)
-            else:
-                raise TypeError(
-                    "Could not understand 'step' input of type:", type(step)
-                    )
+            # elif type(step) is type:
+            #     if issubclass(step, self.sampler):
+            #         return step()(start, stop)
+            #     else:
+            #         pass
+            raise TypeError(
+                "Could not understand 'step' input of type:", type(step)
+                )
         elif isinstance(arg, Sequence):
             return self.discrete(arg, **kwargs)
         else:
             return self.base(arg, **kwargs)
+    @lru_cache
     def __getattr__(self, key):
-        return getattr(self.op, key)
-seq = SeqConstructor()
+        for sk in ('samplers', 'op'):
+            source = getattr(self, sk)
+            try:
+                return getattr(source, key)
+            except AttributeError:
+                pass
+        raise AttributeError
