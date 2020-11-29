@@ -1,26 +1,18 @@
 from collections.abc import Mapping
+from collections import OrderedDict
 
+from ..utilities import unpack_tuple
 from ._derived import Derived
-from ._group import Group
 
 class Map(Derived, Mapping):
-    _groupClass = Group
-    @classmethod
-    def kw(cls, **kwargs):
-        return cls(kwargs.keys(), kwargs.values())
     def __init__(self,
-            *args,
-            pairwise = True,
+            keys,
+            values,
             **kwargs,
             ):
-        if pairwise:
-            keys, values = zip(*args)
-            super().__init__(keys, values, **kwargs)
-        else:
-            keys, values = self._groupClass(*keys), self._groupClass(*values)
-            super().__init__(keys, values, pairwise = False, **kwargs)
+        super().__init__(keys, values, **kwargs)
     def evaluate(self):
-        return dict(zip(*self._resolve_terms()))
+        return OrderedDict(unpack_tuple(*self._resolve_terms()))
     def __getitem__(self, key):
         return self.value[self._value_resolve(key)]
     def __len__(self):

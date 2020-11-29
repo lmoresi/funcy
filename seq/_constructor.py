@@ -36,10 +36,6 @@ class SeqConstructor:
         from ._discrete import Shuffle
         return Shuffle
     @cached_property
-    def group(self):
-        from ._seqgroup import SeqGroup
-        return SeqGroup
-    @cached_property
     def map(self):
         from ._seqmap import SeqMap
         return SeqMap

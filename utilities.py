@@ -23,3 +23,11 @@ def kwargstr(**kwargs):
 
 def process_scalar(scal):
     return scal.dtype.type(scal)
+
+def unpack_tuple(ks, vs):
+    for k, v in zip(ks, vs):
+        if type(k) is tuple:
+            for sk, sv in unpack_tuple(k, v):
+                yield sk, sv
+        else:
+            yield k, v

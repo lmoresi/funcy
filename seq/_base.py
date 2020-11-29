@@ -1,5 +1,5 @@
 from functools import cached_property
-from collections.abc import Iterable, Sized
+from collections.abc import Iterable
 from itertools import product
 
 import reseed
@@ -13,7 +13,7 @@ from .sequtils import seqlength
 from . import seqoperations as seqops
 from .exceptions import *
 
-class Seq(Derived, Iterable, Sized):
+class Seq(Derived, Iterable):
 
     discrete = False
 
@@ -42,11 +42,6 @@ class Seq(Derived, Iterable, Sized):
         return [t for t in self.fnTerms if isinstance(t, Seq)]
     def _seqLength(self):
         return unkint
-    def __len__(self):
-        out = self._seqLength()
-        if isinstance(out, BadNumber):
-            raise out._error
-        return out
 
     def op(self, *args, op, rev = False, **kwargs):
         if rev:
