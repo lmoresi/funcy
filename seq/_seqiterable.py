@@ -75,26 +75,3 @@ class SeqIterable(Iterable):
         return show_iter_vals(self)
     def __repr__(self):
         return f'SeqIterable({repr(self.seq)}) == {str(self)}'
-
-
-    # def _process_negative(self, target):
-    #     length = len(self)
-    #     if isinstance(length, (Unknown, Infinite, Null)):
-    #         raise ValueError("Cannot reverse this sequence.")
-    #     return target + length
-    # def _process_slice(self, slicer):
-    #     start, stop, step = slicer.start, slicer.stop, slicer.step
-    #     return (
-    #         0 if start is None else self._process_negative(start),
-    #         len(self) if stop is None else self._process_negative(stop),
-    #         (1 if step is None else step),
-    #         )
-        # it, i = iter(self), -1
-        # out = []
-        # for si in range(start, stop, step):
-            # si = self._process_negative(si)
-            # while not i == si:
-            #     val = next(it)
-            #     i += 1
-            # out.append(val)
-        # return out
