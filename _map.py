@@ -15,11 +15,9 @@ class Map(Derived, Mapping):
             ):
         if pairwise:
             keys, values = zip(*args)
-        else:
-            keys, values = self._groupClass(*keys), self._groupClass(*values)
-        if pairwise:
             super().__init__(keys, values, **kwargs)
         else:
+            keys, values = self._groupClass(*keys), self._groupClass(*values)
             super().__init__(keys, values, pairwise = False, **kwargs)
     def evaluate(self):
         return dict(zip(*self._resolve_terms()))
