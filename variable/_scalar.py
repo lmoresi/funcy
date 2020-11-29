@@ -23,7 +23,7 @@ class Scalar(Number):
             raise TypeError(type(arg))
 
     def set(self, val):
-        self.data = self._value_resolve(self.data)
+        self.data = self._value_resolve(val)
         self.refresh()
     def rectify(self):
         self.data = self.dtype(self.data)

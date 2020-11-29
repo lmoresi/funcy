@@ -14,12 +14,12 @@ class Slot(Function):
 
     def __init__(self, name = None):
         self.slots = 1
-        if self.name is None:
+        if name is None:
             self.argslots = 1
             self.kwargslots = []
         else:
             self.argslots = 0
-            self.kwargslots = [self.name]
+            self.kwargslots = [name]
         super().__init__(name = name)
         # raise FuncyException("Cannot close a Slot function.")
     def __call__(self, arg):
@@ -32,6 +32,9 @@ class Slot(Function):
     @property
     def value(self):
         return self.evaluate()
+    def register_downstream(self, registrant):
+        # self.downstream.add(registrant)
+        pass
 
     # def evaluate(self):
     #     key = self.name

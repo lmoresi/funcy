@@ -60,10 +60,10 @@ class _Fn:
     def null(self):
         from .special import null
         return null
-    # @cached_property
-    # def n(self):
-    #     from .seq import n
-    #     return n
+    @cached_property
+    def n(self):
+        from .seq import n
+        return n
     def __call__(self, *args, **kwargs):
         if len(args) == 0:
             return self.slot(**kwargs)

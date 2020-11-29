@@ -4,4 +4,4 @@ from ._discrete import *
 from .sequtils import *
 from ._constructor import seq
 from .samplers import Samplers
-# from .n import n
+from .n import n

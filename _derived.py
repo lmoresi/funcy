@@ -5,6 +5,7 @@ from ._constructor import Fn
 from .exceptions import *
 
 from ._base import Function
+from .variable import Variable
 
 class Derived(Function):
 
@@ -35,7 +36,7 @@ class Derived(Function):
 
     def __call__(self, *args, **kwargs):
         if args or kwargs:
-            return self.close(*args, **kwargs).evaluate()
+            return self._value_resolve(self.close(*args, **kwargs))
         else:
             return self.evaluate()
     def _resolve_terms(self):

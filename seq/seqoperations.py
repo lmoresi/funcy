@@ -2,6 +2,7 @@ import itertools
 from collections.abc import Iterable, Sized
 
 from reseed import Reseed
+
 from ..special import *
 
 def shuffled(sequence, seed = None):
@@ -48,3 +49,36 @@ def zipiter(superseq):
                     out[i] = next(si)
                 stopped.clear()
             yield tuple(out)
+
+def muddle(sequences):
+    seqs = [
+        iter(s) if isinstance(s, Iterable) else iter((s,))
+            for s in sequences
+        ]
+    prevs = [[next(s)] for s in seqs]
+    activei = list(range(len(seqs)))
+    yield tuple(p[0] for p in prevs)
+    while True:
+        for i, (s, p) in enumerate(zip(seqs, prevs)):
+            try:
+                p.append(next(s))
+            except StopIteration:
+                try:
+                    activei.remove(i)
+                except ValueError:
+                    pass
+        if activei:
+            for i in range(len(activei)):
+                for comb in itertools.combinations(activei, i + 1):
+                    toprod = []
+                    for ai in range(len(seqs)):
+                        if ai in comb:
+                            toprod.append(prevs[ai][-1:])
+                        elif ai in activei:
+                            toprod.append(prevs[ai][:-1])
+                        else:
+                            toprod.append(prevs[ai])
+                    for row in itertools.product(*toprod):
+                        yield row
+        else:
+            break

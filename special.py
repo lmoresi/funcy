@@ -209,10 +209,14 @@ class BadNumber(numbers.Number):
 
 class Null(BadNumber):
     _error = NullValueDetected
+    def __repr__(self):
+        return 'null'
 class NullFloat(BadNumber, float):
-    pass
+    def __repr__(self):
+        return 'nullfloat'
 class NullInteger(BadNumber, int):
-    pass
+    def __repr__(self):
+        return 'nullint'
 
 class Unknown(BadNumber):
 
@@ -271,10 +275,15 @@ class Unknown(BadNumber):
     def __floor__(self): return self
     def __ceil__(self): return self
 
+    def __repr__(self):
+        return 'unk'
+
 class UnknownFloat(Unknown, float):
-    pass
+    def __repr__(self):
+        return 'unkfloat'
 class UnknownInteger(Unknown, int):
-    pass
+    def __repr__(self):
+        return 'unkint'
 
 null = Null()
 nullflt = NullFloat()

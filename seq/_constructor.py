@@ -4,6 +4,7 @@ from collections.abc import Sequence, Iterable
 
 from .samplers import Sampler
 from .._derived import Derived
+from ._algorithmic import Algorithmic
 
 class SeqConstructor:
     @cached_property
@@ -43,13 +44,13 @@ class SeqConstructor:
         from .n import n
         return n
     def __call__(self, arg, **kwargs):
-        if isinstance(arg, self.base):
+        if isinstance(arg, Derived):
             if kwargs:
                 raise ValueError("Cannot specify kwargs when type is Seq.")
-            # if isinstance(arg, )
-            return arg
-        # elif type(arg) is tuple:
-        #     return self.group(*arg)
+            if hasattr(arg, '_abstract'):
+                return Algorithmic(arg)
+            else:
+                return arg
         elif type(arg) is slice:
             start, stop, step = arg.start, arg.stop, arg.step
             if isinstance(step, numbers.Number):

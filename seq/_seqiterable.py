@@ -21,7 +21,10 @@ class SeqIterable(Iterable):
         assert not out is None
         return out
     def __len__(self):
-        return self._length()
+        out = self._length()
+        if isinstance(out, BadNumber):
+            raise out._error
+        return out
     def __iter__(self):
         return self.seq._iter()
     def __getitem__(self, arg):
@@ -46,20 +49,22 @@ class SeqIterable(Iterable):
     def _get_slice(self, start, stop, step):
         return itertools.islice(self, start, stop, step)
     def __str__(self):
-        length = len(self)
-        if isinstance(length, Infinite):
-            head = ', '.join(str(v) for v in self[:3])
-            content = f'{head}, ... inf'
-        elif isinstance(length, Unknown):
-            head = ', '.join(str(v) for v in self[:3])
-            content = f'{head}, ... unk'
-        else:
+        try:
+            length = len(self)
             if length < 10:
                 content = ', '.join(str(v) for v in self)
             else:
                 head = ', '.join(str(v) for v in self[:3])
                 tail = ', '.join(str(v) for v in self[-3:])
                 content = f'{head}, ... {tail}'
+        except FuncyValueError:
+            length = self._length()
+            if isinstance(length, Infinite):
+                head = ', '.join(str(v) for v in self[:3])
+                content = f'{head}, ... inf'
+            elif isinstance(length, Unknown):
+                head = ', '.join(str(v) for v in self[:3])
+                content = f'{head}, ... unk'
         return f'[{content}]'
     def __repr__(self):
         return f'SeqIterable({repr(self.seq)}) == {str(self)}'

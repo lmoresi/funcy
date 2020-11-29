@@ -43,7 +43,10 @@ class Seq(Derived, Iterable, Sized):
     def _seqLength(self):
         return unkint
     def __len__(self):
-        return self._seqLength()
+        out = self._seqLength()
+        if isinstance(out, BadNumber):
+            raise out._error
+        return out
 
     def op(self, *args, op, rev = False, **kwargs):
         if rev:
@@ -52,9 +55,9 @@ class Seq(Derived, Iterable, Sized):
             return Fn.seq.op(op, self, *args, **kwargs)
     def arithmop(self, *args, op, rev = False, **kwargs):
         if rev:
-            return Fn.seq.op(op, *(*args, self), style = 'product', **kwargs)
+            return Fn.seq.op(op, *(*args, self), style = 'muddle', **kwargs)
         else:
-            return Fn.seq.op(op, self, *args, style = 'product', **kwargs)
+            return Fn.seq.op(op, self, *args, style = 'muddle', **kwargs)
 
     def __getitem__(self, key):
         return self.value[key]
@@ -68,6 +71,9 @@ class Seq(Derived, Iterable, Sized):
     @cached_property
     def zip(self):
         return Fn.seq.op.zipiter(self)
+    @cached_property
+    def muddle(self):
+        return Fn.seq.op.muddle(self)
 
 class Seeded(Seq):
     @cached_property
