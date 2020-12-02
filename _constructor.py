@@ -72,7 +72,7 @@ class _Fn:
         else:
             arg = args[0]
             if len(kwargs) == 0 and isinstance(arg, self.base):
-                if arg.isSeq:
+                if isinstance(arg, self.seq.base):
                     return self.unseq(arg)
                 else:
                     return arg

@@ -48,3 +48,6 @@ class Array(Number):
     @property
     def isnull(self):
         return self._isnull
+
+    def __getitem__(self, key):
+        return self.data[key]
